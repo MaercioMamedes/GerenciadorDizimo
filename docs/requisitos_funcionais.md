@@ -47,5 +47,28 @@
 - RF08.1: O sistema deve exigir autenticação para acesso a qualquer funcionalidade.
 - RF08.2: O sistema deve aplicar controle de autorização por perfil (administrador/dizimista) em todas as rotas e funcionalidades.
 
+## RF09 - Notificação de Cadastro
+- RF09.1: O sistema deve notificar o dizimista sobre a aprovação do seu cadastro após validação pelo administrador.
+- RF09.2: O sistema deve notificar o dizimista sobre a rejeição do seu cadastro após validação pelo administrador, informando o motivo, quando fornecido.
+- RF09.3: A notificação deve ser registrada no sistema (ex: e-mail e/ou notificação interna na aplicação; canal exato a definir na modelagem técnica).
+
+## RF10 - Correção/Complemento de Contribuição (revisão de RF03.3)
+- RF10.1: O sistema deve permitir a correção ou complemento de uma contribuição já registrada para o mesmo dizimista e mesmo mês de referência, em vez de bloquear o novo lançamento.
+- RF10.2: Toda correção/complemento deve gerar um novo registro de alteração (UPDATE), preservando o histórico completo via log de auditoria (estado anterior e novo).
+- RF10.3: O sistema deve exibir ao administrador o histórico de alterações de uma contribuição antes de permitir nova correção, para evitar lançamentos duplicados por engano.
+
+## RF11 - Segurança de Autenticação e Log de Acesso
+- RF11.1: O sistema deve registrar em log toda tentativa de login, com sucesso ou falha, contendo usuário informado, data/hora, resultado (sucesso/falha) e origem da requisição (IP, quando disponível).
+- RF11.2: O sistema deve registrar em log todo evento de logout, contendo usuário, data/hora.
+- RF11.3: O sistema deve bloquear temporariamente a conta após um número configurável de tentativas de login sem sucesso consecutivas (ex: 5 tentativas), impedindo novas tentativas por um período determinado (ex: 15 minutos).
+- RF11.4: O sistema deve registrar em log o evento de bloqueio de conta por tentativas sucessivas de autenticação falhas.
+- RF11.5: O log de tentativas de autenticação (RF11.1, RF11.2, RF11.4) é um log de segurança, distinto do log de auditoria de dados (RF06), mas segue a mesma regra de imutabilidade: não pode ser apagado pelo sistema nem por nenhum usuário.
+
+## RF12 - Disponibilidade do Sistema em Caso de Falha do Log de Auditoria
+- RF12.1: O sistema não deve ficar indisponível para operações de escrita caso o mecanismo de log de auditoria esteja temporariamente indisponível.
+- RF12.2: Enquanto o log de auditoria estiver indisponível, o sistema deve exibir uma notificação permanente e visível em todas as telas de alteração de dados (criação, edição, exclusão), alertando o usuário sobre a indisponibilidade do log de auditoria.
+- RF12.3: O sistema deve registrar, tão logo o log de auditoria seja restabelecido, um evento indicando o período de indisponibilidade, para fins de rastreabilidade da própria falha.
+
+
 ---
 
