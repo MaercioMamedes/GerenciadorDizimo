@@ -23,6 +23,7 @@
 
 * usuário administrador: Cadastra novos usuários, registra contribuição de dízimo, gera relatórios, valida cadastro de usuários dizimista. Acesso irrestrito aos dados da paróquia a qual é vinculado
 * usuário dizimista: visualiza suas contribuições, apenas. Este é vinculado apenas uma igreja da paróquia.
+* um usuário administrador pode ser dizimista ou não
 
 ### contribuição do dizimista
 

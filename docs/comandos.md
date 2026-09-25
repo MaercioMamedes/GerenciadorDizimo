@@ -20,3 +20,17 @@ docker compose dev up -d
 ```bash
 docker compose --profile dev up -d
 ```
+
+### Realizar alterarção no banco
+
+#### realizar arquivo de migration
+
+```bash
+docker compose exec app alembic revision --autogenerate -m "MENSAGEM DE MIGRAÇÃO"
+```
+
+#### implantar migração no banco
+
+```bash
+docker compose exec app alembic upgrade head
+```

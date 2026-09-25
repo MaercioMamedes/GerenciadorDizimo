@@ -11,13 +11,13 @@
 
 ## Fase 0 - Setup de Ambiente e Infraestrutura Base
 
-- Configurar pyenv com versão fixa do Python.
-- Inicializar projeto com Poetry, definindo estrutura de pastas (ex: `app/`, `app/routers/`, `app/models/`, `app/schemas/`, `app/services/`, `app/core/`, `tests/`).
-- Configurar Docker e docker-compose com serviços: aplicação FastAPI e PostgreSQL.
-- Configurar variáveis de ambiente (`.env`) para conexão com banco, segredos de autenticação (JWT), etc.
-- Configurar ferramenta de migração de banco (ex: Alembic).
-- Estruturar camada de configuração (`app/core/config.py`) para preparar futura extração como API pura (separação clara entre lógica de negócio e camada de apresentação).
-- Definir estrutura base de testes (pytest).
+- ✅ Configurar pyenv com versão fixa do Python.
+- ✅ Inicializar projeto com Poetry, definindo estrutura de pastas (ex: `app/`, `app/routers/`, `app/models/`, `app/schemas/`, `app/services/`, `app/core/`, `tests/`).
+- ✅ Configurar Docker e docker-compose com serviços: aplicação FastAPI e PostgreSQL.
+- ✅ Configurar variáveis de ambiente (`.env`) para conexão com banco, segredos de autenticação (JWT), etc.
+- ✅ Configurar ferramenta de migração de banco (ex: Alembic).
+- ✅ Estruturar camada de configuração (`app/core/config.py`) para preparar futura extração como API pura (separação clara entre lógica de negócio e camada de apresentação).
+- ✅ Definir estrutura base de testes (pytest).
 
 **Entregável**: ambiente rodando via `docker-compose up`, com FastAPI respondendo em rota de health-check e conexão validada com Postgres.
 
