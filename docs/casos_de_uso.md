@@ -52,9 +52,9 @@ Todos os casos de uso que envolvem escrita (INSERT, UPDATE ou DELETE) em tabelas
   3. Administrador aprova ou rejeita o cadastro (UPDATE no status).
   4. Sistema atualiza o status do dizimista.
   5. Trigger de auditoria captura o estado anterior e o novo estado, gravando `usuario_id` do administrador responsável.
-  6. Sistema envia notificação ao dizimista informando aprovação ou rejeição do cadastro (e motivo, se rejeitado).
-- **Pós-condição**: Dizimista habilitado a acessar o sistema (se aprovado) ou cadastro rejeitado, com notificação enviada em ambos os casos. Log de alteração de status disponível para consulta.
-- **Requisitos relacionados**: RF02.3, RF06.1, RF06.2, RF09.1, RF09.2, RF09.3
+- **Pós-condição**: Dizimista habilitado a acessar o sistema (se aprovado) ou cadastro rejeitado. Log de alteração de status disponível para consulta.
+  > Nota: notificação ao dizimista (RF09) foi removida do escopo atual. O dizimista deve consultar o status do próprio cadastro manualmente ou por outro canal, a definir futuramente.
+- **Requisitos relacionados**: RF02.3, RF06.1, RF06.2
 
 ## UC05 - Cadastrar Usuário (Administrador cadastra Dizimista)
 - **Ator**: Administrador

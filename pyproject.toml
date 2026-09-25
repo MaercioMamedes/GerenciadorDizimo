@@ -48,3 +48,8 @@ pythonpath = ["src"]
 markers = [
     "integration: testes que dependem de conexão real com banco de dados",
 ]
+filterwarnings = [
+    "ignore::DeprecationWarning:starlette.*",
+    "ignore::DeprecationWarning:anyio.*",
+    "ignore::DeprecationWarning:starlette.testclient",
+]

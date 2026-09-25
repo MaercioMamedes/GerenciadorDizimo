@@ -26,17 +26,16 @@
 ## Fase 1 - Modelagem de Dados e Estrutura Base do Banco
 
 - Modelar entidades principais a partir das premissas e RF01-RF03:
-  - `paroquia`
-  - `igreja` (vinculada a `paroquia`, com flag indicando se é matriz)
-  - `usuario` (com perfil: administrador ou dizimista; vinculado a uma `igreja` no caso de dizimista, e a uma `paroquia` no caso de administrador)
-  - `contribuicao` (vinculada a `usuario` dizimista, `igreja`, mês de referência, valor, data de registro)
+  - ✅ `paroquia`
+  - ✅ `igreja` (vinculada a `paroquia`, com flag indicando se é matriz)
+  - ✅ `usuario` (com perfil: administrador ou dizimista; vinculado a uma `igreja` no caso de dizimista, e a uma `paroquia` no caso de administrador)
+  - ✅ `contribuicao` (vinculada a `usuario` dizimista, `igreja`, mês de referência, valor, data de registro)
 - Modelar tabelas de segurança e auditoria (RF06, RF11):
-  - `audit_log` (tabela genérica, com `tabela`, `operacao`, `registro_id`, `dados_anteriores`, `dados_novos`, `usuario_id`, `executado_em`)
-  - `security_log` (login, logout, tentativas falhas, bloqueios de conta - RF11.1 a RF11.5)
-- Modelar tabela de consentimento LGPD (RF07.3), vinculada ao cadastro do dizimista.
-- Modelar tabela/campo de notificação (RF09), vinculada ao cadastro do dizimista.
-- Criar migrações iniciais via Alembic.
-- Implementar constraint de unicidade (dizimista + mês de referência) na tabela `contribuicao`, considerando o fluxo de correção/complemento (RF10) em vez de bloqueio simples.
+  - ✅ `audit_log` (tabela genérica, com `tabela`, `operacao`, `registro_id`, `dados_anteriores`, `dados_novos`, `usuario_id`, `executado_em`)
+  - ✅ `security_log` (login, logout, tentativas falhas, bloqueios de conta - RF11.1 a RF11.5)
+- ✅ Modelar tabela de consentimento LGPD (RF07.3), vinculada ao cadastro do dizimista.
+- ✅ Criar migrações iniciais via Alembic.
+- ✅Implementar constraint de unicidade (dizimista + mês de referência) na tabela `contribuicao`, considerando o fluxo de correção/complemento (RF10) em vez de bloqueio simples.
 
 **Entregável**: schema de banco criado e versionado via migrações, cobrindo UC01 a UC06 e infraestrutura de log (UC14).
 
@@ -80,9 +79,8 @@
   - Status inicial "pendente" (RF02.7) - UC03
 - Implementar cadastro de dizimista pelo administrador, já validado (RF02.2) - UC05.
 - Implementar tela/rota de listagem de cadastros pendentes e ação de aprovar/rejeitar (RF02.3) - UC04.
-- Implementar disparo de notificação ao dizimista após validação (RF09.1, RF09.2, RF09.3) - integrar com UC04.
 
-**Entregável**: fluxo completo de estruturação organizacional (paróquia → igreja) e ciclo de vida de cadastro de dizimista, do autocadastro à validação com notificação.
+**Entregável**: fluxo completo de estruturação organizacional (paróquia → igreja) e ciclo de vida de cadastro de dizimista, do autocadastro à validação. *(Notificação removida do escopo atual — RF09.)*
 
 ---
 
@@ -151,6 +149,5 @@
 ---
 
 ## Backlog de Pontos Ainda Não Detalhados (a refinar antes ou durante a implementação)
-- Definição do canal exato de notificação (RF09.3): e-mail, notificação interna, ou ambos.
 - Definição de parâmetros configuráveis de segurança (RF11.3): número de tentativas e tempo de bloqueio.
 - Definição do mecanismo de fallback de log (RF12.1): arquivo local, fila (ex: Redis/RabbitMQ) ou tabela de staging no mesmo banco.

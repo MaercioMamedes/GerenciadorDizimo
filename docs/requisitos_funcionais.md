@@ -47,10 +47,14 @@
 - RF08.1: O sistema deve exigir autenticação para acesso a qualquer funcionalidade.
 - RF08.2: O sistema deve aplicar controle de autorização por perfil (administrador/dizimista) em todas as rotas e funcionalidades.
 
-## RF09 - Notificação de Cadastro
-- RF09.1: O sistema deve notificar o dizimista sobre a aprovação do seu cadastro após validação pelo administrador.
-- RF09.2: O sistema deve notificar o dizimista sobre a rejeição do seu cadastro após validação pelo administrador, informando o motivo, quando fornecido.
-- RF09.3: A notificação deve ser registrada no sistema (ex: e-mail e/ou notificação interna na aplicação; canal exato a definir na modelagem técnica).
+## RF09 - Notificação de Cadastro (FORA DE ESCOPO NA VERSÃO ATUAL)
+> ⚠️ Requisito adiado. Não será implementado na versão inicial do sistema,
+> por decisão de escopo focada em usabilidade mínima viável.
+> Mantido no documento para referência futura, caso o requisito seja retomado.
+
+- RF09.1: ~~O sistema deve notificar o dizimista sobre a aprovação do seu cadastro após validação pelo administrador.~~
+- RF09.2: ~~O sistema deve notificar o dizimista sobre a rejeição do seu cadastro após validação pelo administrador, informando o motivo, quando fornecido.~~
+- RF09.3: ~~A notificação deve ser registrada no sistema (ex: e-mail e/ou notificação interna na aplicação; canal exato a definir na modelagem técnica).~~
 
 ## RF10 - Correção/Complemento de Contribuição (revisão de RF03.3)
 - RF10.1: O sistema deve permitir a correção ou complemento de uma contribuição já registrada para o mesmo dizimista e mesmo mês de referência, em vez de bloquear o novo lançamento.

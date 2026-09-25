@@ -1,7 +1,9 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     postgres_user: str
     postgres_password: str
     postgres_db: str
@@ -15,10 +17,6 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
     app_debug: bool = True
-
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
 
 
 settings = Settings()
