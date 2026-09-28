@@ -1,8 +1,8 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 import enum
-from sqlalchemy import String, Enum, ForeignKey, Boolean, Date
+from sqlalchemy import DateTime, Integer, String, Enum, ForeignKey, Boolean, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -46,6 +46,9 @@ class Usuario(Base, TimestampMixin):
     perfil_dizimista: Mapped["PerfilDizimista | None"] = relationship(
         back_populates="usuario", uselist=False
     )
+
+    tentativas_falhas: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    bloqueado_até: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  
 
     def __repr__(self):
         return f"Usuario(id={self.id}, nome={self.nome}, perfil={self.perfil})"

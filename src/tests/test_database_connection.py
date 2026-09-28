@@ -18,7 +18,7 @@ async def test_all_tables_exist(engine):
     expected_tables = {
         "paroquia", "igreja", "usuario", "perfil_dizimista",
         "contribuicao", "audit_log", "security_log",
-        "consentimento_lgpd", "notificacao",
+        "consentimento_lgpd",
     }
 
     async with engine.connect() as conn:

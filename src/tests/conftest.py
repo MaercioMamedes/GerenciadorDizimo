@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -18,10 +18,7 @@ from app.models.base import Base
 
 TEST_DB_NAME = f"{settings.postgres_db}_test"
 
-# URL apontando para o banco de teste (usado pela engine principal)
 TEST_DATABASE_URL = settings.database_url.replace(settings.postgres_db, TEST_DB_NAME)
-
-# URL apontando para o banco "postgres" padrão, usado só para criar o banco de teste
 MAINTENANCE_DATABASE_URL = settings.database_url.replace(settings.postgres_db, "postgres")
 
 
@@ -29,7 +26,7 @@ async def _ensure_test_database_exists() -> None:
     """Conecta ao banco de manutenção 'postgres' e cria o banco de teste, se não existir."""
     maintenance_engine = create_async_engine(
         MAINTENANCE_DATABASE_URL,
-        isolation_level="AUTOCOMMIT",  # CREATE DATABASE não pode rodar em transação
+        isolation_level="AUTOCOMMIT",
     )
     try:
         async with maintenance_engine.connect() as conn:
@@ -62,12 +59,42 @@ async def engine():
 
 @pytest_asyncio.fixture
 async def db_session(engine) -> AsyncGenerator[AsyncSession, None]:
-    """Sessão real, isolada por teste, com rollback automático."""
-    async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+    """
+    Sessão real, isolada por teste, usando savepoints (nested transactions).
 
-    async with async_session() as session:
+    Mesmo que o código sob teste chame `session.commit()`, o commit real
+    fica "preso" dentro de uma transação externa que nunca é confirmada.
+    Ao final do teste, fazemos rollback da transação externa, desfazendo
+    TUDO que foi persistido, independentemente de quantos commits ocorreram.
+    """
+    connection = await engine.connect()
+    trans = await connection.begin()
+
+    async_session = async_sessionmaker(
+        bind=connection, expire_on_commit=False, class_=AsyncSession
+    )
+    session = async_session()
+
+    # Inicia o primeiro savepoint
+    nested = await connection.begin_nested()
+
+    @event.listens_for(session.sync_session, "after_transaction_end")
+    def restart_savepoint(sync_session, transaction):
+        """
+        Sempre que o savepoint atual é finalizado (por causa de um commit()
+        do código sob teste), abre um novo savepoint imediatamente,
+        para que o próximo commit também fique contido.
+        """
+        nonlocal nested
+        if not nested.is_active:
+            nested = connection.sync_connection.begin_nested()
+
+    try:
         yield session
-        await session.rollback()
+    finally:
+        await session.close()
+        await trans.rollback()  # desfaz TUDO, mesmo commits explícitos
+        await connection.close()
 
 
 # ---------------------------------------------------------------------------

@@ -6,4 +6,3 @@ from app.models.contribuicao import Contribuicao
 from app.models.audit_log import AuditLog
 from app.models.security_log import SecurityLog
 from app.models.consentimento_lgpd import ConsentimentoLgpd
-from app.models.notificacao import Notificacao

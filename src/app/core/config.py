@@ -10,13 +10,16 @@ class Settings(BaseSettings):
     postgres_host: str
     postgres_port: int
     database_url: str
-
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
+    max_tentativas_login: int = 5
+    tempo_bloqueio_minutos: int = 15
 
     app_env: str = "development"
     app_debug: bool = True
+
+    
 
 
 settings = Settings()

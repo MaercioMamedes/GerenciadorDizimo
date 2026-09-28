@@ -34,3 +34,14 @@ docker compose exec app alembic revision --autogenerate -m "MENSAGEM DE MIGRAÃ‡Ã
 ```bash
 docker compose exec app alembic upgrade head
 ```
+
+### Criar/recriar ambiente virtual com Poetry
+
+#### criar o venv dentro do projeto
+```bash
+poetry config virtualenvs.in-project true
+poetry env remove python
+poetry install
+
+```
+#### 
