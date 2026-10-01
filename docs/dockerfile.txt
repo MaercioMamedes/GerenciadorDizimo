@@ -4,6 +4,11 @@ ENV POETRY_VERSION=2.2.1 \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
+# Instala o Git (necessário para versionamento e para o VS Code Dev Containers)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip install "poetry==$POETRY_VERSION"
 
 WORKDIR /app
