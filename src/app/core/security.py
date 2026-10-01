@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -17,9 +17,7 @@ def verificar_senha(senha: str, senha_hash: str) -> bool:
 
 
 def criar_access_token(usuario_id: str, perfil: str) -> str:
-    expira = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.access_token_expire_minutes
-    )
+    expira = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
     payload = {"sub": usuario_id, "perfil": perfil, "exp": expira}
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 

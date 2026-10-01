@@ -121,4 +121,3 @@ async def test_me_token_invalido(client):
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Não foi possível validar as credenciais."
-

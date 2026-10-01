@@ -1,6 +1,8 @@
-"""Fixtures compartilhadas: mock para testes de CRUD e engine real para testes de conexão."""
+"""Fixtures compartilhadas: 
+mock para testes de CRUD e engine real para testes de conexão."""
+
 import contextlib
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -19,11 +21,14 @@ from app.models.base import Base
 TEST_DB_NAME = f"{settings.postgres_db}_test"
 
 TEST_DATABASE_URL = settings.database_url.replace(settings.postgres_db, TEST_DB_NAME)
-MAINTENANCE_DATABASE_URL = settings.database_url.replace(settings.postgres_db, "postgres")
+MAINTENANCE_DATABASE_URL = settings.database_url.replace(
+    settings.postgres_db, "postgres"
+)
 
 
 async def _ensure_test_database_exists() -> None:
-    """Conecta ao banco de manutenção 'postgres' e cria o banco de teste, se não existir."""
+    """Conecta ao banco de manutenção 'postgres' 
+    e cria o banco de teste, se não existir."""
     maintenance_engine = create_async_engine(
         MAINTENANCE_DATABASE_URL,
         isolation_level="AUTOCOMMIT",
@@ -100,6 +105,7 @@ async def db_session(engine) -> AsyncGenerator[AsyncSession, None]:
 # ---------------------------------------------------------------------------
 # Fixture para testes de UNIDADE (mock, sem infraestrutura)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def mock_session():

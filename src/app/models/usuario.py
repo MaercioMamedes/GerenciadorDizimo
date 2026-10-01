@@ -1,16 +1,18 @@
+import enum
 import uuid
 from datetime import date, datetime
 from typing import TYPE_CHECKING
-import enum
-from sqlalchemy import DateTime, Integer, String, Enum, ForeignKey, Boolean, Date
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.paroquia import Paroquia
     from app.models.perfil_dizimista import PerfilDizimista
+
 
 class PerfilUsuario(str, enum.Enum):
     ADMINISTRADOR = "administrador"
@@ -48,7 +50,9 @@ class Usuario(Base, TimestampMixin):
     )
 
     tentativas_falhas: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    bloqueado_até: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  
+    bloqueado_até: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     def __repr__(self):
         return f"Usuario(id={self.id}, nome={self.nome}, perfil={self.perfil})"

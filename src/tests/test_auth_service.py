@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -17,16 +17,17 @@ def _mock_scalar_result(mock_session, usuario):
 
 
 def _criar_usuario_fake(**overrides) -> Usuario:
-    dados = dict(
-        id=uuid.uuid4(),
-        nome="Fulano",
-        email="fulano@teste.com",
-        senha_hash="hash_fake",
-        perfil=PerfilUsuario.DIZIMISTA,
-        ativo=True,
-        tentativas_falhas=0,
-        bloqueado_até=None,
-    )
+
+    dados = {
+        "id": uuid.uuid4(),
+        "nome": "Fulano",
+        "email": "fulano@teste.com",
+        "senha_hash": "hash_fake",
+        "perfil": PerfilUsuario.DIZIMISTA,
+        "ativo": True,
+        "tentativas_falhas": 0,
+        "bloqueado_até": None,
+    }
     dados.update(overrides)
     return Usuario(**dados)
 
@@ -36,7 +37,9 @@ async def test_autenticar_usuario_email_inexistente(mock_session):
     _mock_scalar_result(mock_session, None)
 
     with pytest.raises(HTTPException) as exc:
-        await autenticar_usuario(mock_session, email="naoexiste@teste.com", senha="123456")
+        await autenticar_usuario(
+            mock_session, email="naoexiste@teste.com", senha="123456"
+        )
 
     assert exc.value.status_code == 401
     assert exc.value.detail == "Credenciais inválidas."
@@ -44,7 +47,7 @@ async def test_autenticar_usuario_email_inexistente(mock_session):
 
 @pytest.mark.asyncio
 async def test_autenticar_usuario_conta_bloqueada(mock_session):
-    futuro = datetime.now(timezone.utc) + timedelta(minutes=10)
+    futuro = datetime.now(UTC) + timedelta(minutes=10)
     usuario = _criar_usuario_fake(bloqueado_até=futuro)
     _mock_scalar_result(mock_session, usuario)
 
@@ -72,7 +75,9 @@ async def test_autenticar_usuario_senha_incorreta(mock_session, monkeypatch):
     usuario = _criar_usuario_fake(tentativas_falhas=0)
     _mock_scalar_result(mock_session, usuario)
 
-    monkeypatch.setattr("app.services.auth_service.verificar_senha", lambda senha, hash_: False)
+    monkeypatch.setattr(
+        "app.services.auth_service.verificar_senha", lambda senha, hash_: False
+    )
 
     with pytest.raises(HTTPException) as exc:
         await autenticar_usuario(mock_session, email=usuario.email, senha="errada")
@@ -83,11 +88,15 @@ async def test_autenticar_usuario_senha_incorreta(mock_session, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_autenticar_usuario_bloqueia_apos_max_tentativas(mock_session, monkeypatch):
+async def test_autenticar_usuario_bloqueia_apos_max_tentativas(
+    mock_session, monkeypatch
+):
     usuario = _criar_usuario_fake(tentativas_falhas=settings.max_tentativas_login - 1)
     _mock_scalar_result(mock_session, usuario)
 
-    monkeypatch.setattr("app.services.auth_service.verificar_senha", lambda senha, hash_: False)
+    monkeypatch.setattr(
+        "app.services.auth_service.verificar_senha", lambda senha, hash_: False
+    )
 
     with pytest.raises(HTTPException) as exc:
         await autenticar_usuario(mock_session, email=usuario.email, senha="errada")
@@ -95,7 +104,7 @@ async def test_autenticar_usuario_bloqueia_apos_max_tentativas(mock_session, mon
     assert exc.value.status_code == 403
     assert "bloqueada" in exc.value.detail.lower()
     assert usuario.bloqueado_até is not None
-    assert usuario.bloqueado_até > datetime.now(timezone.utc)
+    assert usuario.bloqueado_até > datetime.now(UTC)
 
 
 @pytest.mark.asyncio
@@ -103,9 +112,13 @@ async def test_autenticar_usuario_sucesso(mock_session, monkeypatch):
     usuario = _criar_usuario_fake(tentativas_falhas=3)
     _mock_scalar_result(mock_session, usuario)
 
-    monkeypatch.setattr("app.services.auth_service.verificar_senha", lambda senha, hash_: True)
+    monkeypatch.setattr(
+        "app.services.auth_service.verificar_senha", lambda senha, hash_: True
+    )
 
-    resultado = await autenticar_usuario(mock_session, email=usuario.email, senha="correta")
+    resultado = await autenticar_usuario(
+        mock_session, email=usuario.email, senha="correta"
+    )
 
     assert resultado is usuario
     assert usuario.tentativas_falhas == 0

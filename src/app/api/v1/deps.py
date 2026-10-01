@@ -5,9 +5,9 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db  # ajuste conforme o caminho real do módulo
 from app.core.security import decodificar_access_token
-from app.models.usuario import Usuario, PerfilUsuario
+from app.db.session import get_db  # ajuste conforme o caminho real do módulo
+from app.models.usuario import PerfilUsuario, Usuario
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -32,8 +32,8 @@ async def get_current_user(
 
     try:
         usuario_uuid = uuid.UUID(usuario_id)
-    except ValueError:
-        raise credentials_exception
+    except ValueError as e:
+        raise credentials_exception from e
 
     resultado = await db.execute(select(Usuario).where(Usuario.id == usuario_uuid))
     usuario = resultado.scalar_one_or_none()

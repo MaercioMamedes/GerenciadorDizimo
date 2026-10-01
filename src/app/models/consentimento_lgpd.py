@@ -1,11 +1,11 @@
 import uuid
-from app.models.base import utc_now
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import UUID
 
-from app.models.base import Base
+from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.models.base import Base, utc_now
 
 
 class ConsentimentoLgpd(Base):

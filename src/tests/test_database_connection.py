@@ -1,6 +1,7 @@
 """Testes de conectividade real com o banco de dados (SEM mock)."""
+
 import pytest
-from sqlalchemy import text, inspect
+from sqlalchemy import inspect, text
 
 pytestmark = pytest.mark.integration
 
@@ -14,10 +15,16 @@ async def test_connection_is_alive(db_session):
 
 @pytest.mark.asyncio
 async def test_all_tables_exist(engine):
-    """Verifica se todas as tabelas do schema foram criadas corretamente no banco real."""
+    """Verifica se todas as tabelas do schema foram 
+    criadas corretamente no banco real."""
     expected_tables = {
-        "paroquia", "igreja", "usuario", "perfil_dizimista",
-        "contribuicao", "audit_log", "security_log",
+        "paroquia",
+        "igreja",
+        "usuario",
+        "perfil_dizimista",
+        "contribuicao",
+        "audit_log",
+        "security_log",
         "consentimento_lgpd",
     }
 
@@ -35,7 +42,8 @@ async def test_perfil_dizimista_tem_colunas_de_endereco(engine):
     async with engine.connect() as conn:
         columns = await conn.run_sync(
             lambda sync_conn: {
-                col["name"] for col in inspect(sync_conn).get_columns("perfil_dizimista")
+                col["name"]
+                for col in inspect(sync_conn).get_columns("perfil_dizimista")
             }
         )
 

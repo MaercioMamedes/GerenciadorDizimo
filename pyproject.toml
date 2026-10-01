@@ -6,7 +6,8 @@ authors = [
     {name = "Maercio Mamedes", email = "maerciomamedes@hotmail.com"}
 ]
 readme = "README.md"
-requires-python = "^3.12"
+requires-python = ">=3.12,<3.13"
+
 
 dependencies = [
     "fastapi (>=0.141.1,<0.142.0)",
@@ -35,7 +36,8 @@ dev = [
     "httpx (>=0.28.1,<0.29.0)",
     "black (>=26.5.1,<27.0.0)",
     "ruff (>=0.16.8,<0.17.0)",
-    "psycopg2-binary (>=2.9.13,<3.0.0)"
+    "psycopg2-binary (>=2.9.13,<3.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)"
 ]
 
 [tool.poetry]
@@ -57,4 +59,32 @@ filterwarnings = [
     "ignore::DeprecationWarning:passlib.*",
     "ignore:Using `httpx` with `starlette.testclient` is deprecated.*:DeprecationWarning",
 ]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C4"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/tests/*.py" = []
 

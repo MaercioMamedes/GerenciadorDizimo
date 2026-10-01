@@ -1,14 +1,16 @@
 import uuid
 from typing import TYPE_CHECKING
-from sqlalchemy import String, Boolean, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.paroquia import Paroquia
-    
+
+
 class Igreja(Base, TimestampMixin):
     __tablename__ = "igreja"
 
@@ -25,4 +27,8 @@ class Igreja(Base, TimestampMixin):
     paroquia: Mapped["Paroquia"] = relationship(back_populates="igrejas")
 
     def __repr__(self):
-        return f"Igreja(id={self.id}, nome={self.nome}, is_matriz={self.is_matriz}, endereco={self.endereco})"
+        return f"""
+            Igreja(id={self.id}, 
+            nome={self.nome},
+            is_matriz={self.is_matriz},
+            endereco={self.endereco})"""

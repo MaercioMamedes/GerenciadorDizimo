@@ -19,7 +19,5 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_debug: bool = True
 
-    
-
 
 settings = Settings()

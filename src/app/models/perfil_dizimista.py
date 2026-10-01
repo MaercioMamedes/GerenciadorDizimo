@@ -1,15 +1,17 @@
+import enum
 import uuid
 from typing import TYPE_CHECKING
-import enum
+
 from sqlalchemy import Enum, ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from app.models.usuario import Usuario
     from app.models.igreja import Igreja
+    from app.models.usuario import Usuario
+
 
 class StatusCadastro(str, enum.Enum):
     PENDENTE = "pendente"
@@ -32,7 +34,8 @@ class PerfilDizimista(Base, TimestampMixin):
     )
     status_cadastro: Mapped[StatusCadastro] = mapped_column(
         Enum(StatusCadastro, name="status_cadastro_enum"),
-        default=StatusCadastro.PENDENTE, nullable=False
+        default=StatusCadastro.PENDENTE,
+        nullable=False,
     )
 
     # Endereço do dizimista
@@ -44,7 +47,13 @@ class PerfilDizimista(Base, TimestampMixin):
     igreja: Mapped["Igreja"] = relationship()
 
     def __repr__(self):
-        return f"PerfilDizimista(id={self.id}, usuario_id={self.usuario_id}, status={self.status_cadastro})"
+        return f"""
+            PerfilDizimista(id={self.id},
+            usuario_id={self.usuario_id}, 
+            status={self.status_cadastro})"""
 
     def __str__(self):
-        return f"PerfilDizimista(id={self.id}, usuario_id={self.usuario_id}, status={self.status_cadastro})"
+        return f"""
+            PerfilDizimista(id={self.id},
+            usuario_id={self.usuario_id}, 
+            status={self.status_cadastro})"""

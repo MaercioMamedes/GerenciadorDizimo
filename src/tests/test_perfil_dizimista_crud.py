@@ -1,11 +1,11 @@
 """Testes de CRUD usando mock de AsyncSession (sem banco real)."""
+
 from datetime import date
-from unittest.mock import AsyncMock
 
 import pytest
 
 from app.models.perfil_dizimista import PerfilDizimista, StatusCadastro
-from app.models.usuario import Usuario, PerfilUsuario
+from app.models.usuario import PerfilUsuario, Usuario
 
 
 @pytest.mark.asyncio

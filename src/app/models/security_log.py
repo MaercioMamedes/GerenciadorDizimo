@@ -1,11 +1,11 @@
 import uuid
-from app.models.base import utc_now
 from datetime import datetime
-from sqlalchemy import String, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import UUID
 
-from app.models.base import Base
+from sqlalchemy import DateTime, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.models.base import Base, utc_now
 
 
 class SecurityLog(Base):
@@ -14,9 +14,14 @@ class SecurityLog(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    # Sem ForeignKey intencionalmente: logs devem persistir mesmo se o usuário for excluído
-    usuario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
-    evento: Mapped[str] = mapped_column(String(50), nullable=False)  # login_sucesso, login_falha, logout, bloqueio
+    # Sem ForeignKey intencionalmente: 
+    # logs devem persistir mesmo se o usuário for excluído
+    usuario_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    evento: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # login_sucesso, login_falha, logout, bloqueio
     ip_origem: Mapped[str | None] = mapped_column(String(45), nullable=True)
     detalhes: Mapped[str | None] = mapped_column(String(255), nullable=True)
     executado_em: Mapped[datetime] = mapped_column(

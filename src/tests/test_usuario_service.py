@@ -1,11 +1,12 @@
 """Testes de unidade para criar_usuario, usando mock_session (sem banco real)."""
+
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.services.usuario_service import criar_usuario
-from app.schemas.usuario import UsuarioCreate
 from app.models.usuario import PerfilUsuario
+from app.schemas.usuario import UsuarioCreate
+from app.services.usuario_service import criar_usuario
 
 pytestmark = pytest.mark.asyncio
 

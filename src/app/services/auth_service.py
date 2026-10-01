@@ -1,14 +1,14 @@
-from datetime import datetime, timedelta, timezone
 import uuid
+from datetime import UTC, datetime, timedelta
 
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
 
 from app.core.config import settings
-from app.core.security import verificar_senha, criar_access_token
-from app.models.usuario import Usuario
+from app.core.security import criar_access_token, verificar_senha
 from app.models.security_log import SecurityLog
+from app.models.usuario import Usuario
 
 
 async def _registrar_log(
@@ -41,25 +41,40 @@ async def autenticar_usuario(
 
     # Usuário não existe: não revelar esse detalhe (evita enumeração de e-mails)
     if usuario is None:
-        await _registrar_log(db, "login_falha", detalhes=f"email inexistente: {email}", ip_origem=ip_origem)
+        await _registrar_log(
+            db,
+            "login_falha",
+            detalhes=f"email inexistente: {email}",
+            ip_origem=ip_origem,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciais inválidas.",
         )
 
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
 
     # Verifica se está bloqueado
     if usuario.bloqueado_até and usuario.bloqueado_até > agora:
-        await _registrar_log(db, "login_bloqueado", usuario_id=usuario.id, ip_origem=ip_origem)
+        await _registrar_log(
+            db, "login_bloqueado", usuario_id=usuario.id, ip_origem=ip_origem
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Conta bloqueada até {usuario.bloqueado_até.isoformat()}. Tente novamente mais tarde.",
+            detail=f"""
+                    Conta bloqueada até {usuario.bloqueado_até.isoformat()}.
+                    Tente novamente mais tarde.""",
         )
 
     # Conta inativa
     if not usuario.ativo:
-        await _registrar_log(db, "login_falha", usuario_id=usuario.id, detalhes="conta inativa", ip_origem=ip_origem)
+        await _registrar_log(
+            db,
+            "login_falha",
+            usuario_id=usuario.id,
+            detalhes="conta inativa",
+            ip_origem=ip_origem,
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Conta desativada. Contate o administrador.",
@@ -70,16 +85,24 @@ async def autenticar_usuario(
         usuario.tentativas_falhas += 1
 
         if usuario.tentativas_falhas >= settings.max_tentativas_login:
-            usuario.bloqueado_até = agora + timedelta(minutes=settings.tempo_bloqueio_minutos)
+            usuario.bloqueado_até = agora + timedelta(
+                minutes=settings.tempo_bloqueio_minutos
+            )
             await db.commit()
-            await _registrar_log(db, "bloqueio", usuario_id=usuario.id, ip_origem=ip_origem)
+            await _registrar_log(
+                db, "bloqueio", usuario_id=usuario.id, ip_origem=ip_origem
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Número máximo de tentativas excedido. Conta bloqueada por {settings.tempo_bloqueio_minutos} minutos.",
+                detail=f"""
+                Número máximo de tentativas excedido. Conta bloqueada
+                por {settings.tempo_bloqueio_minutos} minutos.""",
             )
 
         await db.commit()
-        await _registrar_log(db, "login_falha", usuario_id=usuario.id, ip_origem=ip_origem)
+        await _registrar_log(
+            db, "login_falha", usuario_id=usuario.id, ip_origem=ip_origem
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciais inválidas.",
@@ -90,7 +113,9 @@ async def autenticar_usuario(
     usuario.bloqueado_até = None
     await db.commit()
 
-    await _registrar_log(db, "login_sucesso", usuario_id=usuario.id, ip_origem=ip_origem)
+    await _registrar_log(
+        db, "login_sucesso", usuario_id=usuario.id, ip_origem=ip_origem
+    )
     return usuario
 
 

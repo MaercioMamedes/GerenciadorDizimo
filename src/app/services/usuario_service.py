@@ -1,6 +1,6 @@
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
 
 from app.core.security import hash_senha
 from app.models.usuario import Usuario
