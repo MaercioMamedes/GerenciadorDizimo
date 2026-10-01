@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decodificar_access_token
@@ -56,6 +56,20 @@ def require_perfil(*perfis_permitidos: PerfilUsuario):
         return usuario
 
     return verificador
+
+async def get_db_com_auditoria(
+    usuario: Usuario = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AsyncSession:
+    """
+    Retorna a sessão do banco já com o usuario_id propagado via SET LOCAL,
+    necessário para os triggers de auditoria (audit_log).
+    """
+    await db.execute(
+        text("SET LOCAL app.usuario_id = :usuario_id"),
+        {"usuario_id": str(usuario.id)},
+    )
+    return db
 
 
 # Atalhos prontos para uso nos routers

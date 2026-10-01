@@ -1,10 +1,12 @@
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
 from app.core.security import hash_senha
 from app.db.session import get_db
 from app.main import app
+from app.models.security_log import SecurityLog
 from app.models.usuario import PerfilUsuario, Usuario
 
 pytestmark = pytest.mark.asyncio
@@ -121,3 +123,59 @@ async def test_me_token_invalido(client):
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Não foi possível validar as credenciais."
+
+async def test_logout_com_token_valido(client, usuario_dizimista):
+    login_response = await client.post(
+        "/auth/login",
+        json={"email": usuario_dizimista.email, "senha": "senha123"},
+    )
+    token = login_response.json()["access_token"]
+
+    response = await client.post(
+        "/auth/logout",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 204
+    assert response.content == b""
+
+
+async def test_logout_sem_token(client):
+    response = await client.post("/auth/logout")
+    assert response.status_code == 401
+
+
+async def test_logout_token_invalido(client):
+    response = await client.post(
+        "/auth/logout",
+        headers={"Authorization": "Bearer token_invalido_xyz"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Não foi possível validar as credenciais."
+
+
+async def test_logout_registra_evento_em_security_log(
+    client, db_session, usuario_dizimista
+):
+
+    login_response = await client.post(
+        "/auth/login",
+        json={"email": usuario_dizimista.email, "senha": "senha123"},
+    )
+    token = login_response.json()["access_token"]
+
+    await client.post(
+        "/auth/logout",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    resultado = await db_session.execute(
+        select(SecurityLog)
+        .where(SecurityLog.usuario_id == usuario_dizimista.id)
+        .where(SecurityLog.evento == "logout")
+    )
+    log = resultado.scalar_one_or_none()
+
+    assert log is not None
+    assert log.evento == "logout"
+

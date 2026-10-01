@@ -7,7 +7,11 @@ from fastapi import HTTPException
 
 from app.core.config import settings
 from app.models.usuario import PerfilUsuario, Usuario
-from app.services.auth_service import autenticar_usuario, gerar_token_para_usuario
+from app.services.auth_service import (
+    autenticar_usuario,
+    gerar_token_para_usuario,
+    registrar_logout,
+)
 
 
 def _mock_scalar_result(mock_session, usuario):
@@ -132,3 +136,17 @@ def test_gerar_token_para_usuario():
 
     assert isinstance(token, str)
     assert len(token) > 0
+
+@pytest.mark.asyncio
+async def test_registrar_logout(mock_session):
+    usuario = _criar_usuario_fake()
+
+    await registrar_logout(mock_session, usuario=usuario, ip_origem="127.0.0.1")
+
+    mock_session.add.assert_called_once()
+    log_salvo = mock_session.add.call_args[0][0]
+
+    assert log_salvo.evento == "logout"
+    assert log_salvo.usuario_id == usuario.id
+    assert log_salvo.ip_origem == "127.0.0.1"
+    mock_session.commit.assert_awaited()
