@@ -57,6 +57,7 @@ def require_perfil(*perfis_permitidos: PerfilUsuario):
 
     return verificador
 
+
 async def get_db_com_auditoria(
     usuario: Usuario = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

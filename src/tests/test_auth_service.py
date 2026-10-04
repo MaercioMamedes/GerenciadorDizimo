@@ -137,6 +137,7 @@ def test_gerar_token_para_usuario():
     assert isinstance(token, str)
     assert len(token) > 0
 
+
 @pytest.mark.asyncio
 async def test_registrar_logout(mock_session):
     usuario = _criar_usuario_fake()

@@ -122,11 +122,9 @@ async def autenticar_usuario(
 def gerar_token_para_usuario(usuario: Usuario) -> str:
     return criar_access_token(usuario_id=str(usuario.id), perfil=usuario.perfil.value)
 
+
 async def registrar_logout(
     db: AsyncSession, usuario: Usuario, ip_origem: str | None = None
 ) -> None:
     """Registra o evento de logout no security_log."""
-    await _registrar_log(
-        db, "logout", usuario_id=usuario.id, ip_origem=ip_origem
-    )
-
+    await _registrar_log(db, "logout", usuario_id=usuario.id, ip_origem=ip_origem)

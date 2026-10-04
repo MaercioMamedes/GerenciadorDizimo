@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, String, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -12,7 +12,10 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=text("gen_random_uuid()"),
     )
     tabela: Mapped[str] = mapped_column(String(100), nullable=False)
     operacao: Mapped[str] = mapped_column(
@@ -21,7 +24,7 @@ class AuditLog(Base):
     registro_id: Mapped[str] = mapped_column(String(100), nullable=False)
     dados_anteriores: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     dados_novos: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    # Sem ForeignKey intencionalmente: 
+    # Sem ForeignKey intencionalmente:
     # logs devem persistir mesmo se o usuário for excluído
     usuario_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True

@@ -1,22 +1,22 @@
-from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 import sys
+from logging.config import fileConfig
 from pathlib import Path
+
+from sqlalchemy import engine_from_config, pool
 
 # Adiciona APENAS a pasta src/ ao path — assim tudo é importado como "app.*"
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
+import app.models  # noqa: F401 — registra todos os models no metadata
+from alembic import context
 from app.core.config import settings
 from app.models.base import Base
-import app.models  # noqa: F401 — registra todos os models no metadata
-
-from alembic import context
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url.replace("+asyncpg", ""))
+
+# Prioriza URL passada programaticamente (ex: testes), senão usa a de dev
+db_url = config.attributes.get("sqlalchemy_url") or settings.database_url.replace("+asyncpg", "")
+config.set_main_option("sqlalchemy.url", db_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

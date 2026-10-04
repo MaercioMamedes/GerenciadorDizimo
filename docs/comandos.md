@@ -45,3 +45,10 @@ poetry install
 
 ```
 #### 
+
+### formatar código
+
+```bash
+poetry run ruff format src/
+poetry run ruff check --fix src/
+```

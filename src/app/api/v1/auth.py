@@ -30,6 +30,7 @@ async def login(
 async def me(usuario: Usuario = Depends(get_current_user)):
     return usuario
 
+
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     request: Request,

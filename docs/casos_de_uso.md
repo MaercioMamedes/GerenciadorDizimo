@@ -140,7 +140,7 @@ Todos os casos de uso que envolvem escrita (INSERT, UPDATE ou DELETE) em tabelas
 - **Pós-condição**: Dados pessoais anonimizados; logs de auditoria preservados sem exclusão, incluindo o próprio histórico de dados anteriores à anonimização (mantido no log conforme RF06.3, ainda que os dados na tabela principal já estejam anonimizados).
 - **Requisitos relacionados**: RF07.4, RF06.3, RF06.1, RF06.2
 
-## UC13 - Autenticar no Sistema (
+## UC13 - Autenticar no Sistema
 - **Ator**: Administrador, Dizimista
 - **Pré-condição**: Usuário previamente cadastrado e validado.
 - **Fluxo principal**:
@@ -159,22 +159,25 @@ Todos os casos de uso que envolvem escrita (INSERT, UPDATE ou DELETE) em tabelas
 - **Pós-condição**: Sessão autenticada iniciada, com autorização aplicada por perfil; ou conta temporariamente bloqueada após tentativas sucessivas sem sucesso. Log de segurança completo (login, logout, tentativas falhas, bloqueios) disponível para consulta e imutável.
 - **Requisitos relacionados**: RF08.1, RF08.2, RF11.1, RF11.2, RF11.3, RF11.4, RF11.5
 
-## UC14 - Registrar Log de Auditoria (revisão do fluxo de exceção)
+## UC14 - Registrar Log de Auditoria
 
-### Fluxo de exceção (falha na gravação do log) — revisado
-1. Se a gravação do log de auditoria falhar por qualquer motivo (ex: indisponibilidade momentânea do banco/serviço de log), a operação de negócio é executada e confirmada normalmente, sem ser bloqueada pela falha do log.
-2. O sistema registra internamente (ex: em arquivo de fallback ou fila de reprocessamento) a ocorrência da falha, para posterior reconciliação quando o log for restabelecido.
-3. Enquanto o log de auditoria estiver indisponível, o sistema exibe uma notificação permanente e visível em todas as telas de alteração de dados (criação, edição, exclusão), alertando o usuário sobre a indisponibilidade temporária do log de auditoria.
-4. Quando o log de auditoria for restabelecido, o sistema registra um evento indicando o período de indisponibilidade, para rastreabilidade da própria falha (RF12.3).
+### Fluxo principal
+1. Qualquer operação de escrita (INSERT, UPDATE, DELETE) em tabela monitorada dispara o trigger `fn_audit_log`.
+2. O trigger captura o estado anterior e/ou novo do registro (via `row_to_json`) e grava em `audit_log`, dentro da mesma transação da operação de negócio.
+3. A transação é confirmada (commit) somente se a gravação em `audit_log` também for bem-sucedida.
 
-### Pós-condição (revisada)
-Registro de log criado normalmente em condições regulares. Em caso de indisponibilidade do log, a operação de negócio não é bloqueada, mas o usuário é alertado visualmente durante o período de indisponibilidade, e o incidente é registrado para reconciliação posterior.
+### Fluxo de exceção (falha na gravação do log)
+1. Se a gravação do log de auditoria falhar por qualquer motivo, a transação inteira (operação de negócio + log) é desfeita (rollback). A operação de negócio **não** é confirmada.
+2. O sistema retorna erro ao usuário, sem exceção de disponibilidade — não há mecanismo de fallback, notificação de indisponibilidade ou reconciliação implementados nesta versão (RF12.1/RF12.2/RF12.3 adiados).
+
+> **Decisão de escopo (2026-10-04)**: optou-se por manter o comportamento de atomicidade estrita entre dado e log (RF06), já que ambos residem na mesma transação/mesmo banco Postgres via trigger — cenário em que uma falha isolada no log praticamente não ocorre. O requisito RF12 (resiliência a falhas do log) foi avaliado, prototipado (migração e testes desenvolvidos) e **revertido**, ficando para reavaliação após a implantação e análise de casos reais de uso.
+
+### Pós-condição
+Registro de log criado normalmente junto com a operação de negócio, na mesma transação. Em caso de falha na gravação do log, toda a transação (incluindo a operação de negócio) é desfeita.
 
 ### Requisitos relacionados
-RF06.1, RF06.2, RF06.3, RF12.1, RF12.2, RF12.3
+RF06.1, RF06.2, RF06.3
 
 ---
 
-**Nota de coerência**: essa revisão do fluxo de exceção do UC14 substitui o comportamento anterior (bloqueio total da operação em caso de falha do log), removendo a característica de atomicidade estrita entre dado e log que dependia do trigger estar na mesma transação. Isso implica uma decisão de arquitetura a formalizar depois: se o log continuar via trigger no mesmo banco Postgres, uma falha no log praticamente nunca ocorrerá isoladamente (é o mesmo banco da operação), então esse cenário de exceção só se torna relevante de fato se, no futuro, o log de auditoria for migrado para uma tabela em outro banco/serviço, quebrando a atomicidade transacional. Vale ter isso em mente na modelagem de dados, pois trigger e log fora de transação são incompatíveis por natureza — se um dia essa migração ocorrer, o mecanismo de gravação do log precisará mudar de trigger de banco para chamada assíncrona da aplicação.
-
-
+**Nota de coerência**: a atomicidade estrita entre dado e log (trigger na mesma transação) é compatível apenas enquanto o log de auditoria permanecer no mesmo banco Postgres da operação de negócio. Caso, no futuro, o log seja migrado para uma tabela em outro banco/serviço, essa atomicidade se rompe, e o mecanismo de gravação precisará mudar de trigger de banco para chamada assíncrona da aplicação — ponto em que o requisito RF12 (atualmente adiado) deverá ser reavaliado como prioritário.

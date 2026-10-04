@@ -1,18 +1,23 @@
-"""Fixtures compartilhadas: 
+"""Fixtures compartilhadas:
 mock para testes de CRUD e engine real para testes de conexão."""
 
+import asyncio
 import contextlib
 from collections.abc import AsyncGenerator
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
+from alembic.config import Config
 from sqlalchemy import event, text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from alembic import command
 from app.core.config import settings
-from app.models.base import Base
+
+# from app.models.base import Base  # mantido: outras fixtures/testes podem usar Base
 
 # ---------------------------------------------------------------------------
 # Fixtures para testes de INTEGRAÇÃO (banco real)
@@ -25,9 +30,13 @@ MAINTENANCE_DATABASE_URL = settings.database_url.replace(
     settings.postgres_db, "postgres"
 )
 
+# Raiz do projeto: src/tests/conftest.py -> sobe 2 níveis
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ALEMBIC_INI_PATH = PROJECT_ROOT / "alembic.ini"
+
 
 async def _ensure_test_database_exists() -> None:
-    """Conecta ao banco de manutenção 'postgres' 
+    """Conecta ao banco de manutenção 'postgres'
     e cria o banco de teste, se não existir."""
     maintenance_engine = create_async_engine(
         MAINTENANCE_DATABASE_URL,
@@ -41,23 +50,45 @@ async def _ensure_test_database_exists() -> None:
         await maintenance_engine.dispose()
 
 
+def _run_alembic_upgrade(sync_url: str) -> None:
+    """
+    Executa `alembic upgrade head` de forma síncrona (API do Alembic é
+    síncrona), apontando explicitamente para o banco de teste via
+    config.attributes — sem alterar o comportamento padrão do env.py
+    usado em produção/dev.
+    """
+    alembic_cfg = Config(str(ALEMBIC_INI_PATH))
+    alembic_cfg.attributes["sqlalchemy_url"] = sync_url
+    command.upgrade(alembic_cfg, "head")
+
+
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def engine():
     """
-    Garante que o banco de teste existe, cria o engine assíncrono real
-    e as tabelas antes da suíte de integração.
+    Garante que o banco de teste existe e aplica TODAS as migrações
+    Alembic reais nele (não apenas Base.metadata.create_all), garantindo
+    que funções, triggers e demais objetos criados via `op.execute()`
+    também existam no banco de teste.
     """
     await _ensure_test_database_exists()
 
-    test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    # Alembic/psycopg2 operam de forma síncrona; a URL assíncrona (+asyncpg)
+    # não serve aqui — removemos o driver para usar o padrão (psycopg2)
+    sync_test_url = TEST_DATABASE_URL.replace("+asyncpg", "")
 
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # command.upgrade é bloqueante; roda em thread separada para não
+    # travar o event loop do pytest-asyncio
+    await asyncio.to_thread(_run_alembic_upgrade, sync_test_url)
+
+    test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 
     yield test_engine
 
+    # Derruba todo o schema (mais simples e confiável que rodar
+    # downgrade migração por migração)
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.execute(text("DROP SCHEMA public CASCADE"))
+        await conn.execute(text("CREATE SCHEMA public"))
 
     await test_engine.dispose()
 
@@ -80,16 +111,10 @@ async def db_session(engine) -> AsyncGenerator[AsyncSession, None]:
     )
     session = async_session()
 
-    # Inicia o primeiro savepoint
     nested = await connection.begin_nested()
 
     @event.listens_for(session.sync_session, "after_transaction_end")
     def restart_savepoint(sync_session, transaction):
-        """
-        Sempre que o savepoint atual é finalizado (por causa de um commit()
-        do código sob teste), abre um novo savepoint imediatamente,
-        para que o próximo commit também fique contido.
-        """
         nonlocal nested
         if not nested.is_active:
             nested = connection.sync_connection.begin_nested()
@@ -98,7 +123,7 @@ async def db_session(engine) -> AsyncGenerator[AsyncSession, None]:
         yield session
     finally:
         await session.close()
-        await trans.rollback()  # desfaz TUDO, mesmo commits explícitos
+        await trans.rollback()
         await connection.close()
 
 

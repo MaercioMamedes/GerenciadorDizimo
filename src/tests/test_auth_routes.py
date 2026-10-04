@@ -124,6 +124,7 @@ async def test_me_token_invalido(client):
     assert response.status_code == 401
     assert response.json()["detail"] == "Não foi possível validar as credenciais."
 
+
 async def test_logout_com_token_valido(client, usuario_dizimista):
     login_response = await client.post(
         "/auth/login",
@@ -178,4 +179,3 @@ async def test_logout_registra_evento_em_security_log(
 
     assert log is not None
     assert log.evento == "logout"
-

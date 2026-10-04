@@ -43,14 +43,14 @@
 
 ## Fase 2 - Autenticação, Autorização e Segurança (UC13, RF08, RF11)
 
-- Implementar cadastro de credenciais e hash de senha.
-- Implementar geração/validação de token de sessão (JWT ou sessão equivalente).
-- Implementar dependency de autenticação no FastAPI, propagando `usuario_id` para a sessão do Postgres via `SET LOCAL` (necessário para os triggers de auditoria da Fase 3).
-- Implementar middleware/dependency de autorização por perfil (administrador/dizimista), bloqueando rotas conforme RF08.2.
-- Implementar fluxo de login com registro em `security_log` (sucesso e falha) - RF11.1.
-- Implementar contador de tentativas falhas e bloqueio temporário de conta - RF11.3, RF11.4.
-- Implementar fluxo de logout com registro em `security_log` - RF11.2.
-- Garantir, via permissões de banco, que `security_log` e `audit_log` não aceitem `UPDATE`/`DELETE` pela role da aplicação (RF06.3, RF11.5).
+- ✅ Implementar cadastro de credenciais e hash de senha.
+- ✅ Implementar geração/validação de token de sessão (JWT ou sessão equivalente).
+- ✅ Implementar dependency de autenticação no FastAPI, propagando `usuario_id` para a sessão do Postgres via `SET LOCAL` (necessário para os triggers de auditoria da Fase 3).
+- ✅ Implementar middleware/dependency de autorização por perfil (administrador/dizimista), bloqueando rotas conforme RF08.2.
+- ✅ Implementar fluxo de login com registro em `security_log` (sucesso e falha) - RF11.1.
+- ✅ Implementar contador de tentativas falhas e bloqueio temporário de conta - RF11.3, RF11.4.
+- ✅ Implementar fluxo de logout com registro em `security_log` - RF11.2.
+- ✅ Garantir, via permissões de banco, que `security_log` e `audit_log` não aceitem `UPDATE`/`DELETE` pela role da aplicação (RF06.3, RF11.5).
 
 **Entregável**: sistema de login/logout funcional, com bloqueio por tentativas falhas e logs de segurança imutáveis. Cobre UC13.
 
@@ -58,14 +58,13 @@
 
 ## Fase 3 - Auditoria de Dados (UC14, RF06, RF12)
 
-- Implementar função de trigger genérica `fn_audit_log` no PostgreSQL, capturando estado completo antes/depois via `row_to_json`.
-- Aplicar triggers `AFTER INSERT/UPDATE/DELETE` nas tabelas monitoradas: `paroquia`, `igreja`, `usuario`, `contribuicao`.
-- Revogar `DELETE`/`UPDATE` na tabela `audit_log` para a role da aplicação.
-- Implementar mecanismo de fallback para falha de gravação de log (RF12.1): a operação de negócio não deve ser bloqueada por indisponibilidade do log.
-- Implementar notificação visual permanente nas telas de alteração de dados quando o log estiver indisponível (RF12.2).
-- Implementar registro de evento de reconciliação quando o log for restabelecido (RF12.3).
+- ✅ Implementar função de trigger genérica `fn_audit_log` no PostgreSQL, capturando estado completo antes/depois via `row_to_json`.
+- ✅ Aplicar triggers `AFTER INSERT/UPDATE/DELETE` nas tabelas monitoradas: `paroquia`, `igreja`, `usuario`, `contribuicao`.
+- ✅ Revogar `DELETE`/`UPDATE` na tabela `audit_log` para a role da aplicação.
+- ⛔ **RF12 (fallback de gravação de log, notificação visual de indisponibilidade, evento de reconciliação) — decisão de escopo: NÃO implementado nesta versão.**
+  > Decisão registrada em 2026-10-04: como `audit_log` é gravada via trigger na mesma transação/mesmo banco Postgres da operação de negócio, uma falha isolada no log praticamente não ocorre nesse desenho (ver nota de coerência do UC14). Optou-se por manter o comportamento fail-fast (se a gravação do log falhar, a transação de negócio inteira falha) até a implantação em produção e análise de casos reais de uso. Uma migração de implementação do fallback (`264f5f9cebe2`) foi desenvolvida, testada e revertida, podendo ser retomada futuramente se a necessidade for confirmada.
 
-**Entregável**: qualquer escrita nas tabelas de negócio gera log de auditoria automaticamente, com garantia de imutabilidade e resiliência a falhas do subsistema de log.
+**Entregável**: qualquer escrita nas tabelas de negócio gera log de auditoria automaticamente, com garantia de imutabilidade. Resiliência a falhas do subsistema de log (RF12) adiada para avaliação pós-implantação.
 
 ---
 
@@ -131,11 +130,11 @@
 
 - Testes unitários para regras de negócio críticas: bloqueio de conta, correção de contribuição, anonimização de dados.
 - Testes de integração para os triggers de auditoria (garantir captura correta de `dados_anteriores`/`dados_novos`).
-- Testes de carga/resiliência simulando indisponibilidade do log de auditoria (validar RF12.1 e RF12.2).
+- ⛔ Testes de carga/resiliência simulando indisponibilidade do log de auditoria (RF12.1/RF12.2) — **adiados**, pois a funcionalidade correspondente não será implementada nesta versão.
 - Revisão de segurança: proteção contra SQL Injection, validação de entrada em todas as rotas, rate limiting no endpoint de login (complementar ao RF11.3).
 - Revisão de conformidade LGPD com checklist final (consentimento, anonimização, controle de acesso).
 
-**Entregável**: sistema testado e validado contra os requisitos funcionais e de segurança definidos.
+**Entregável**: sistema testado e validado contra os requisitos funcionais e de segurança definidos (exceto RF12, adiado).
 
 ---
 
@@ -150,4 +149,4 @@
 
 ## Backlog de Pontos Ainda Não Detalhados (a refinar antes ou durante a implementação)
 - Definição de parâmetros configuráveis de segurança (RF11.3): número de tentativas e tempo de bloqueio.
-- Definição do mecanismo de fallback de log (RF12.1): arquivo local, fila (ex: Redis/RabbitMQ) ou tabela de staging no mesmo banco.
+- **RF12.1/RF12.2/RF12.3 (fallback de log, notificação de indisponibilidade e evento de reconciliação): decisão tomada em 2026-10-04 de NÃO implementar nesta versão.** Comportamento atual: se a gravação em `audit_log` falhar, a transação de negócio é abortada (fail-fast). Reavaliar após a implantação, com base em casos reais de uso. Caso seja retomado, considerar mecanismo de staging no mesmo banco (abordagem já prototipada e revertida), fila (Redis/RabbitMQ) ou arquivo local.

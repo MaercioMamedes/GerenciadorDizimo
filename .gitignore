@@ -178,3 +178,11 @@ pyrightconfig.json
 .devcontainer/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+errors.txt
+dockerfile.txt
+tree.txt
+env.txt
+alembic_ini.txt
+console_tests_log.txt
+console_log.txt

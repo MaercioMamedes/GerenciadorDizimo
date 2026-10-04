@@ -15,7 +15,7 @@ async def test_connection_is_alive(db_session):
 
 @pytest.mark.asyncio
 async def test_all_tables_exist(engine):
-    """Verifica se todas as tabelas do schema foram 
+    """Verifica se todas as tabelas do schema foram
     criadas corretamente no banco real."""
     expected_tables = {
         "paroquia",
