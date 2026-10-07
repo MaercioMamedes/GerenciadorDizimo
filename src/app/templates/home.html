@@ -1,30 +1,25 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador de Dízimo</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
-</head>
-<body>
-    <header class="header">
-        <h1>⛪ Gerenciador de Dízimo</h1>
-        <p>Sistema de arrecadação e controle de dízimos da paróquia</p>
-    </header>
+{% extends "base.html" %}
 
-    <main class="container">
-        <section class="card">
-            <h2>Bem-vindo(a)!</h2>
-            <p>Gerencie de forma simples e transparente a arrecadação de dízimos da comunidade.</p>
-        </section>
+{% block titulo %}Gerenciador de Dízimo{% endblock %}
 
-        <section class="actions">
-            <a href="/docs" class="btn">📄 Documentação da API</a>
-        </section>
-    </main>
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/home.css') }}">
+{% endblock %}
 
-    <footer class="footer">
-        <p>&copy; 2026 Gerenciador Dízimo. Todos os direitos reservados.</p>
-    </footer>
-</body>
-</html>
+{% block conteudo %}
+<section class="home-hero">
+  <h1>⛪ Gerenciador de Dízimo</h1>
+  <p>Sistema de arrecadação e controle de dízimos da paróquia</p>
+</section>
+
+<section class="home-card">
+  <h2>Bem-vindo(a)!</h2>
+  <p>Gerencie de forma simples e transparente a arrecadação de dízimos da comunidade.</p>
+</section>
+
+<section class="home-actions">
+  <a href="/docs" class="btn btn-primary">📄 Documentação da API</a>
+</section>
+{% endblock %}
+
+{% block scripts_extra %}{% endblock %}

@@ -1,0 +1,3 @@
+- Padronizar páginas html
+- definir fluxos de criação de usuários
+- criar páginas/endpoints dos cruds

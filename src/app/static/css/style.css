@@ -1,67 +1,135 @@
+/* ============================================================ */
+/* Arquivo: app/static/css/custom.css                            */
+/* Estilos COMPARTILHADOS entre todas as páginas.                */
+/* Não coloque aqui nada específico de uma página isolada.       */
+/* ============================================================ */
+
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --cor-primaria: #A61C1C;
+  --cor-primaria-hover: #7E1515;
+  --cor-secundaria: #D4A72C;
+  --cor-sucesso: #2E7D4F;
+  --cor-perigo: #D32F2F;
+  --cor-fundo: #FDFDFD;
+  --cor-fundo-alt: #F2F2F2;
+  --cor-texto: #262626;
+  --cor-borda: #E0E0E0;
 }
 
 body {
-    font-family: "Segoe UI", Arial, sans-serif;
-    background-color: #f4f4f7;
-    color: #333;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background-color: var(--cor-fundo);
+  color: var(--cor-texto);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.header {
-    background-color: #4a3f8f;
-    color: #fff;
-    text-align: center;
-    padding: 2rem 1rem;
+/* Navbar */
+.navbar-dizimo {
+  background-color: var(--cor-primaria);
+}
+.navbar-dizimo .navbar-brand,
+.navbar-dizimo .nav-link {
+  color: #FFFFFF !important;
+}
+.navbar-dizimo .nav-link:hover {
+  color: var(--cor-secundaria) !important;
 }
 
-.header h1 {
-    margin-bottom: 0.5rem;
+/* Botões */
+.btn-primary {
+  background-color: var(--cor-primaria);
+  border-color: var(--cor-primaria);
+}
+.btn-primary:hover {
+  background-color: var(--cor-primaria-hover);
+  border-color: var(--cor-primaria-hover);
 }
 
-.container {
-    flex: 1;
-    max-width: 700px;
-    margin: 2rem auto;
-    padding: 0 1rem;
+.btn-secondary {
+  background-color: var(--cor-secundaria);
+  border-color: var(--cor-secundaria);
+  color: var(--cor-texto);
+}
+.btn-secondary:hover {
+  background-color: #b8901f;
+  border-color: #b8901f;
+  color: var(--cor-texto);
 }
 
-.card {
-    background: #fff;
-    border-radius: 8px;
-    padding: 2rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    text-align: center;
+.btn-success {
+  background-color: var(--cor-sucesso);
+  border-color: var(--cor-sucesso);
 }
 
-.actions {
-    margin-top: 1.5rem;
-    text-align: center;
+.btn-danger {
+  background-color: var(--cor-perigo);
+  border-color: var(--cor-perigo);
 }
 
-.btn {
-    display: inline-block;
-    background-color: #4a3f8f;
-    color: #fff;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    text-decoration: none;
-    font-weight: bold;
-    transition: background-color 0.2s;
+.btn-outline-primary {
+  color: var(--cor-primaria);
+  border-color: var(--cor-primaria);
+}
+.btn-outline-primary:hover {
+  background-color: var(--cor-primaria);
+  border-color: var(--cor-primaria);
+  color: #FFFFFF;
 }
 
-.btn:hover {
-    background-color: #382f6e;
+/* Cards e tabelas */
+.card-header-dizimo {
+  background-color: var(--cor-primaria);
+  color: #FFFFFF;
 }
 
+.table thead {
+  background-color: var(--cor-primaria);
+  color: #FFFFFF;
+}
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: var(--cor-fundo-alt);
+}
+
+/* Links */
+a {
+  color: var(--cor-primaria);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--cor-primaria-hover);
+}
+
+/* Badges de status */
+.badge-pendente {
+  background-color: var(--cor-secundaria);
+  color: var(--cor-texto);
+}
+.badge-aprovado {
+  background-color: var(--cor-sucesso);
+}
+.badge-rejeitado {
+  background-color: var(--cor-perigo);
+}
+
+/* Formulários */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 0.25rem rgba(166, 28, 28, 0.25);
+}
+
+/* Rodapé padrão */
 .footer {
-    text-align: center;
-    padding: 1rem;
-    font-size: 0.85rem;
-    color: #777;
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: #777;
 }

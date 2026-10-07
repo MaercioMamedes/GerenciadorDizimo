@@ -1,0 +1,100 @@
+<!-- app/templates/paroquias/listar.html -->
+{% extends "base.html" %}
+
+{% block titulo %}Paróquias{% endblock %}
+
+{% block conteudo %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Paróquias</h2>
+    <a href="/paroquias/nova" class="btn btn-primary">+ Nova Paróquia</a>
+</div>
+
+{% if request.query_params.get("msg") == "criado" %}
+<div class="alert alert-success">Paróquia cadastrada com sucesso.</div>
+{% elif request.query_params.get("msg") == "atualizado" %}
+<div class="alert alert-success">Paróquia atualizada com sucesso.</div>
+{% elif request.query_params.get("msg") == "nao_encontrada" %}
+<div class="alert alert-danger">Paróquia não encontrada.</div>
+{% endif %}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>CNPJ</th>
+            <th>Endereço</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for paroquia in paroquias %}
+        <tr>
+            <td>{{ paroquia.nome }}</td>
+            <td>{{ paroquia.cnpj or "-" }}</td>
+            <td>{{ paroquia.endereco or "-" }}</td>
+            <td>
+                <a href="/paroquias/{{ paroquia.id }}/editar" class="btn btn-sm btn-primary">Editar</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4" class="text-center text-muted">Nenhuma paróquia cadastrada.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+
+<!-- app/templates/paroquias/formulario.html -->
+{% extends "base.html" %}
+
+{% block titulo %}{{ "Editar" if paroquia else "Nova" }} Paróquia{% endblock %}
+
+{% block conteudo %}
+<h2 class="mb-4">{{ "Editar" if paroquia else "Nova" }} Paróquia</h2>
+
+{% if erros %}
+<div class="alert alert-danger">
+    <ul class="mb-0">
+        {% for erro in erros %}
+        <li>{{ erro }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form method="post" style="max-width: 500px;">
+    <div class="mb-3">
+        <label class="form-label">Nome da Paróquia</label>
+        <input
+            type="text"
+            name="nome"
+            class="form-control"
+            value="{{ paroquia.nome if paroquia else '' }}"
+            required minlength="1" maxlength="150">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">CNPJ</label>
+        <input
+            type="text"
+            name="cnpj"
+            class="form-control"
+            value="{{ paroquia.cnpj if paroquia and paroquia.cnpj else '' }}"
+            maxlength="18"
+            placeholder="00.000.000/0000-00">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Endereço</label>
+        <input
+            type="text"
+            name="endereco"
+            class="form-control"
+            value="{{ paroquia.endereco if paroquia and paroquia.endereco else '' }}"
+            maxlength="255">
+    </div>
+
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="/paroquias" class="btn btn-outline-primary">Cancelar</a>
+</form>
+{% endblock %}

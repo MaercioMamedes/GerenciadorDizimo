@@ -11,7 +11,9 @@ from app.services.auth_service import (
     registrar_logout,
 )
 
-router = APIRouter(prefix="/auth", tags=["Autenticação"])
+# app/api/v1/auth.py
+router = APIRouter(prefix="/api/v1/auth", tags=["API - Autenticação"])
+
 
 
 @router.post("/login", response_model=TokenResponse)

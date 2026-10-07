@@ -45,7 +45,7 @@ async def usuario_dizimista(db_session):
 
 async def test_login_sucesso(client, usuario_dizimista):
     response = await client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"email": usuario_dizimista.email, "senha": "senha123"},
     )
 
@@ -57,7 +57,7 @@ async def test_login_sucesso(client, usuario_dizimista):
 
 async def test_login_senha_incorreta(client, usuario_dizimista):
     response = await client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"email": usuario_dizimista.email, "senha": "senha_errada"},
     )
 
@@ -67,7 +67,7 @@ async def test_login_senha_incorreta(client, usuario_dizimista):
 
 async def test_login_email_inexistente(client):
     response = await client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"email": "naoexiste@teste.com", "senha": "qualquer"},
     )
 
@@ -86,7 +86,7 @@ async def test_login_usuario_inativo(client, db_session):
     await db_session.commit()
 
     response = await client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"email": usuario.email, "senha": "senha123"},
     )
 
@@ -96,13 +96,13 @@ async def test_login_usuario_inativo(client, db_session):
 
 async def test_me_com_token_valido(client, usuario_dizimista):
     login_response = await client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"email": usuario_dizimista.email, "senha": "senha123"},
     )
     token = login_response.json()["access_token"]
 
     response = await client.get(
-        "/auth/me",
+        "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -112,13 +112,13 @@ async def test_me_com_token_valido(client, usuario_dizimista):
 
 
 async def test_me_sem_token(client):
-    response = await client.get("/auth/me")
+    response = await client.get("/api/v1/auth/me")
     assert response.status_code == 401
 
 
 async def test_me_token_invalido(client):
     response = await client.get(
-        "/auth/me",
+        "/api/v1/auth/me",
         headers={"Authorization": "Bearer token_invalido_xyz"},
     )
     assert response.status_code == 401
@@ -127,13 +127,13 @@ async def test_me_token_invalido(client):
 
 async def test_logout_com_token_valido(client, usuario_dizimista):
     login_response = await client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"email": usuario_dizimista.email, "senha": "senha123"},
     )
     token = login_response.json()["access_token"]
 
     response = await client.post(
-        "/auth/logout",
+        "/api/v1/auth/logout",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -142,13 +142,13 @@ async def test_logout_com_token_valido(client, usuario_dizimista):
 
 
 async def test_logout_sem_token(client):
-    response = await client.post("/auth/logout")
+    response = await client.post("/api/v1/auth/logout")
     assert response.status_code == 401
 
 
 async def test_logout_token_invalido(client):
     response = await client.post(
-        "/auth/logout",
+        "/api/v1/auth/logout",
         headers={"Authorization": "Bearer token_invalido_xyz"},
     )
     assert response.status_code == 401
@@ -160,13 +160,13 @@ async def test_logout_registra_evento_em_security_log(
 ):
 
     login_response = await client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"email": usuario_dizimista.email, "senha": "senha123"},
     )
     token = login_response.json()["access_token"]
 
     await client.post(
-        "/auth/logout",
+        "/api/v1/auth/logout",
         headers={"Authorization": f"Bearer {token}"},
     )
 

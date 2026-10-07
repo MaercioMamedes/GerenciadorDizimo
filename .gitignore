@@ -186,3 +186,6 @@ env.txt
 alembic_ini.txt
 console_tests_log.txt
 console_log.txt
+guia-de-estilo-paleta-vermelho-e-branco.html
+docker-logs-*.csv
+

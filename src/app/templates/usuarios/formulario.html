@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Editar Usuário" if usuario else "Novo Usuário" }}{% endblock %}
+
+{% block conteudo %}
+<div class="container my-5" style="max-width: 600px;">
+  <div class="card">
+    <div class="card-header card-header-dizimo">
+      {{ "Editar Usuário" if usuario else "Cadastrar Novo Usuário" }}
+    </div>
+    <div class="card-body">
+
+      {% if erros %}
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            {% for erro in erros %}
+              <li>{{ erro }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <form method="post" action="{{ '/usuarios/' + usuario.id|string + '/editar' if usuario else '/usuarios/novo' }}">
+
+        <div class="mb-3">
+          <label for="nome" class="form-label">Nome completo</label>
+          <input
+            type="text"
+            class="form-control"
+            id="nome"
+            name="nome"
+            minlength="3"
+            maxlength="150"
+            placeholder="Ex: Maria da Silva"
+            value="{{ usuario.nome if usuario else '' }}"
+            required
+          >
+        </div>
+
+        <div class="mb-3">
+          <label for="email" class="form-label">E-mail</label>
+          <input
+            type="email"
+            class="form-control"
+            id="email"
+            name="email"
+            maxlength="150"
+            placeholder="exemplo@email.com"
+            value="{{ usuario.email if usuario else '' }}"
+            required
+          >
+        </div>
+
+        {% if not usuario %}
+        <div class="mb-3">
+          <label for="senha" class="form-label">Senha</label>
+          <input
+            type="password"
+            class="form-control"
+            id="senha"
+            name="senha"
+            minlength="8"
+            maxlength="100"
+            placeholder="Mínimo 8 caracteres"
+            required
+          >
+        </div>
+
+        <div class="mb-3">
+          <label for="confirmar_senha" class="form-label">Confirmar senha</label>
+          <input
+            type="password"
+            class="form-control"
+            id="confirmar_senha"
+            name="confirmar_senha"
+            minlength="8"
+            maxlength="100"
+            placeholder="Repita a senha"
+            required
+          >
+        </div>
+        {% endif %}
+
+        <div class="mb-3">
+          <label for="telefone" class="form-label">Telefone <span class="text-muted">(opcional)</span></label>
+          <input
+            type="tel"
+            class="form-control"
+            id="telefone"
+            name="telefone"
+            maxlength="20"
+            placeholder="(82) 99999-9999"
+            value="{{ usuario.telefone if usuario else '' }}"
+          >
+        </div>
+
+        <div class="mb-3">
+          <label for="data_nascimento" class="form-label">Data de nascimento <span class="text-muted">(opcional)</span></label>
+          <input
+            type="date"
+            class="form-control"
+            id="data_nascimento"
+            name="data_nascimento"
+            value="{{ usuario.data_nascimento if usuario else '' }}"
+          >
+        </div>
+
+        <div class="mb-3">
+          <label for="perfil" class="form-label">Perfil</label>
+          <select class="form-select" id="perfil" name="perfil" required onchange="alternarCampoParoquia(this.value)">
+            <option value="" {{ "selected" if not usuario else "" }} disabled>Selecione...</option>
+            <option value="administrador" {{ "selected" if usuario and usuario.perfil == 'administrador' else "" }}>Administrador</option>
+            <option value="dizimista" {{ "selected" if usuario and usuario.perfil == 'dizimista' else "" }}>Dizimista</option>
+          </select>
+        </div>
+
+        <div class="mb-3" id="campo-paroquia" style="display: none;">
+          <label for="paroquia_id" class="form-label">Paróquia</label>
+          <select class="form-select" id="paroquia_id" name="paroquia_id">
+            <option value="">Selecione...</option>
+            {% for paroquia in paroquias %}
+              <option value="{{ paroquia.id }}" {{ "selected" if usuario and usuario.paroquia_id == paroquia.id else "" }}>
+                {{ paroquia.nome }}
+              </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Obrigatório apenas para o perfil Administrador.</div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary">Salvar</button>
+          <a href="/usuarios" class="btn btn-outline-primary">Cancelar</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function alternarCampoParoquia(valor) {
+    const campo = document.getElementById('campo-paroquia');
+    const select = document.getElementById('paroquia_id');
+    if (valor === 'administrador') {
+      campo.style.display = 'block';
+      select.required = true;
+    } else {
+      campo.style.display = 'none';
+      select.required = false;
+      select.value = '';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const perfilAtual = document.getElementById('perfil').value;
+    alternarCampoParoquia(perfilAtual);
+  });
+</script>
+{% endblock %}
