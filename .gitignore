@@ -179,7 +179,7 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
-errors.txt
+erros.txt
 dockerfile.txt
 tree.txt
 env.txt
@@ -188,4 +188,6 @@ console_tests_log.txt
 console_log.txt
 guia-de-estilo-paleta-vermelho-e-branco.html
 docker-logs-*.csv
-
+pyproject_toml.txt
+makefile.txt
+docs/erros.txt

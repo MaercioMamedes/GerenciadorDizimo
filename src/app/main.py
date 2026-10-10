@@ -7,6 +7,7 @@ from app.api.v1.usuario import router as usuario_api_router
 from app.core.templates import templates
 from app.views.auth_views import router as auth_views_router
 from app.views.deps import get_usuario_atual_opcional
+from app.views.usuarios_views import router as usuario_views_router
 
 app = FastAPI(title="Gerenciador Dízimo")
 
@@ -14,6 +15,8 @@ app.mount("/static", StaticFiles(directory="src/app/static"), name="static")
 
 # Views (SSR, cookie)
 app.include_router(auth_views_router)
+app.include_router(usuario_views_router)
+
 
 # API (JSON, Bearer) — manter com outro prefixo se necessário para não colidir
 app.include_router(auth_api_router)

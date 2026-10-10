@@ -1,0 +1,12 @@
+services:
+  selenium:
+    volumes:
+      - "./selenium/policies/policy.json:/etc/opt/chrome/policies/managed/policy.json:ro"
+      - "./selenium/policies/policy.json:/etc/chromium/policies/managed/policy.json:ro"
+      - "./selenium/policies/policy.json:/etc/opt/chrome_for_testing/policies/managed/policy.json:ro"
+
+  app:
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}_test
+      SELENIUM_REMOTE_URL: http://selenium:4444/wd/hub
+      APP_BASE_URL: http://app:8000

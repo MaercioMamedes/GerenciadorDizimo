@@ -16,6 +16,11 @@ services:
       db:
         condition: service_healthy
 
+    networks:
+        default:
+          aliases:
+            - webserver
+
   db:
     image: postgres:16
     container_name: dizimo_db
@@ -50,6 +55,20 @@ services:
         condition: service_healthy
     volumes:
       - dizimo_pgadmin_data:/var/lib/pgadmin
+
+  # Container Chrome headless, usado SOMENTE para os testes Selenium (RBAC: dev/CI).
+  # Nunca sobe em produção, pois está preso ao profile "dev".
+  selenium:
+    image: selenium/standalone-chrome:latest
+    container_name: dizimo_selenium
+    profiles: ["dev"]
+    shm_size: "2gb"
+    ports:
+      - "4444:4444"  # WebDriver remoto
+      - "7900:7900"  # VNC (ver o navegador rodando, útil para debug)
+    depends_on:
+      app:
+        condition: service_started
 
 volumes:
   dizimo_pgdata:

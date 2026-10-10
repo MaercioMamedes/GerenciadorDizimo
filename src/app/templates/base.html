@@ -41,7 +41,7 @@
                     {% endif %}
                     {% if usuario_atual %}
                     <li class="nav-item">
-                        <a class="nav-link" href="/logout">Sair</a>
+                        <a class="nav-link" href="{{url_for('logout_via_formulario')}}">Sair</a>
                     </li>
                     {% else %}
                     <li class="nav-item">

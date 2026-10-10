@@ -64,7 +64,7 @@ async def login_via_formulario(
     return resposta
 
 
-@router.post("/logout")
+@router.get("/logout")
 async def logout_via_formulario(
     request: Request,
     db: AsyncSession = Depends(get_db),
