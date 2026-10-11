@@ -1,4 +1,5 @@
 """Instância única e centralizada do Jinja2Templates, evitando caminhos divergentes."""
+
 from pathlib import Path
 
 from fastapi.templating import Jinja2Templates

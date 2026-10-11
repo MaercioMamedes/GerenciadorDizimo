@@ -24,10 +24,13 @@ from app.core.config import settings
 # ---------------------------------------------------------------------------
 
 TEST_DB_NAME = f"{settings.postgres_db}_test"
-
-TEST_DATABASE_URL = settings.database_url.replace(settings.postgres_db, TEST_DB_NAME)
-MAINTENANCE_DATABASE_URL = settings.database_url.replace(
-    settings.postgres_db, "postgres"
+TEST_DATABASE_URL = (
+    f"postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}"
+    f"@{settings.postgres_host}:{settings.postgres_port}/{TEST_DB_NAME}"
+)
+MAINTENANCE_DATABASE_URL = (
+    f"postgresql+asyncpg://{settings.postgres_user}:{settings.postgres_password}"
+    f"@{settings.postgres_host}:{settings.postgres_port}/postgres"
 )
 
 # Raiz do projeto: src/tests/conftest.py -> sobe 2 níveis

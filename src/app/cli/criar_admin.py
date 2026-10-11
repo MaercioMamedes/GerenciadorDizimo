@@ -5,6 +5,7 @@ Script para criar o usuário administrador inicial.
 Uso:
     python -m app.cli.criar_admin
 """
+
 import asyncio
 import getpass
 

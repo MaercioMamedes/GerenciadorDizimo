@@ -10,13 +10,17 @@ registro em PerfilDizimista vinculado a uma igreja (RF02.5). O template atual
 dizimista (apenas paroquia_id, exclusivo do administrador) — pendente de
 ajuste no template e nesta view antes de UC03 estar 100% completo.
 """
+
+import math
+
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.templates import templates
 from app.db.session import get_db
-from app.models.usuario import PerfilUsuario
+from app.models.usuario import PerfilUsuario, Usuario
 from app.schemas.usuario import UsuarioCreate
 from app.services.usuario_service import criar_usuario
 from app.views.deps import get_usuario_atual_opcional
@@ -106,3 +110,53 @@ async def cadastrar_usuario_via_formulario(
         )
 
     return RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
+
+
+async def listar_usuarios_paginado(
+    db: AsyncSession,
+    pagina: int = 1,
+    tamanho_pagina: int = 10,
+    perfil: PerfilUsuario | None = None,
+) -> dict:
+    """
+    Retorna uma página de usuários ordenados por nome, junto com
+    metadados de paginação.
+
+    Args:
+        pagina: número da página (1-indexed).
+        tamanho_pagina: quantidade de registros por página.
+        perfil: filtro opcional por perfil (administrador/dizimista).
+
+    Returns:
+        dict com: itens, pagina, tamanho_pagina, total_registros, total_paginas
+    """
+    pagina = max(pagina, 1)
+    tamanho_pagina = max(min(tamanho_pagina, 100), 1)  # limite de segurança
+
+    filtro = []
+    if perfil is not None:
+        filtro.append(Usuario.perfil == perfil)
+
+    total_registros = (
+        await db.execute(select(func.count()).select_from(Usuario).where(*filtro))
+    ).scalar_one()
+
+    total_paginas = max(math.ceil(total_registros / tamanho_pagina), 1)
+    pagina = min(pagina, total_paginas)
+
+    resultado = await db.execute(
+        select(Usuario)
+        .where(*filtro)
+        .order_by(Usuario.nome)
+        .offset((pagina - 1) * tamanho_pagina)
+        .limit(tamanho_pagina)
+    )
+    itens = resultado.scalars().all()
+
+    return {
+        "itens": itens,
+        "pagina": pagina,
+        "tamanho_pagina": tamanho_pagina,
+        "total_registros": total_registros,
+        "total_paginas": total_paginas,
+    }

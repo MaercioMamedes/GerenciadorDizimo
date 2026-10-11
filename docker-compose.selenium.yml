@@ -7,6 +7,6 @@ services:
 
   app:
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}_test
+      TESTING: "true"
       SELENIUM_REMOTE_URL: http://selenium:4444/wd/hub
       APP_BASE_URL: http://app:8000

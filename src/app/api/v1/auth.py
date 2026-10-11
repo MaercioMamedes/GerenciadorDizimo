@@ -15,7 +15,6 @@ from app.services.auth_service import (
 router = APIRouter(prefix="/api/v1/auth", tags=["API - Autenticação"])
 
 
-
 @router.post("/login", response_model=TokenResponse)
 async def login(
     dados: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)

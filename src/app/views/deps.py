@@ -5,6 +5,7 @@ Diferente de app/api/v1/deps.py (que usa Bearer token/OAuth2PasswordBearer
 para a futura API JSON), aqui o token é lido do cookie HTTPOnly setado
 no login via formulário HTML.
 """
+
 import uuid
 
 from fastapi import Depends, HTTPException, Request, status
@@ -77,7 +78,7 @@ async def exigir_usuario_logado(
 
 
 def exigir_perfil_view(*perfis_permitidos: PerfilUsuario):
-    """Factory de dependência para RBAC em views 
+    """Factory de dependência para RBAC em views
     (equivalente ao require_perfil da API)."""
 
     def verificador(usuario: Usuario = Depends(exigir_usuario_logado)) -> Usuario:

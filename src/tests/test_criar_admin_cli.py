@@ -9,6 +9,7 @@ Estratégia:
   script opere sobre o mesmo banco de testes/transação.
 - `input()` e `getpass.getpass()` são simulados via monkeypatch.
 """
+
 import contextlib
 
 import pytest

@@ -8,8 +8,11 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_criar_paroquia(db_session):
-    dados = ParoquiaCreate(nome="Paróquia São Francisco", cnpj="12.345.678/0001-90",
-                            endereco="Rua das Flores, 100")
+    dados = ParoquiaCreate(
+        nome="Paróquia São Francisco",
+        cnpj="12.345.678/0001-90",
+        endereco="Rua das Flores, 100",
+    )
     paroquia = await paroquia_service.criar_paroquia(db_session, dados)
 
     assert paroquia.id is not None

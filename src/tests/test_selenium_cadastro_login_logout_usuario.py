@@ -17,6 +17,7 @@ dos testes de unidade/integração padrão:
 
     pytest -m selenium
 """
+
 import asyncio
 import os
 import uuid
@@ -42,7 +43,7 @@ pytestmark = pytest.mark.selenium
 SELENIUM_REMOTE_URL = os.environ.get(
     "SELENIUM_REMOTE_URL", "http://selenium:4444/wd/hub"
 )
-APP_BASE_URL="http://webserver:8000"
+APP_BASE_URL = "http://webserver:8000"
 
 
 # Engine assíncrona apontando para o MESMO banco de teste do conftest.py
@@ -105,6 +106,7 @@ def driver():
     yield navegador
     navegador.quit()
 
+
 async def _aprovar_dizimista(email: str) -> None:
     """Aprova diretamente no banco o cadastro recém-criado via formulário,
     simulando a validação do administrador (UC04), para permitir login."""
@@ -140,9 +142,7 @@ class TestCadastroUsuario:
         driver.find_element(By.ID, "confirmar_senha").send_keys("senha_valida123")
 
         select_perfil = driver.find_element(By.ID, "perfil")
-        select_perfil.find_element(
-            By.CSS_SELECTOR, "option[value='dizimista']"
-        ).click()
+        select_perfil.find_element(By.CSS_SELECTOR, "option[value='dizimista']").click()
 
         driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
@@ -160,9 +160,7 @@ class TestCadastroUsuario:
         driver.find_element(By.ID, "confirmar_senha").send_keys("outra_senha456")
 
         select_perfil = driver.find_element(By.ID, "perfil")
-        select_perfil.find_element(
-            By.CSS_SELECTOR, "option[value='dizimista']"
-        ).click()
+        select_perfil.find_element(By.CSS_SELECTOR, "option[value='dizimista']").click()
 
         driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
@@ -244,9 +242,11 @@ class TestLoginELogout:
         )
         assert link_login.is_displayed()
 
+
 def test_debug_chrome_policy(driver):
     driver.get("chrome://policy")
     import time
+
     time.sleep(1)
     print("\n\n===== CHROME POLICY PAGE SOURCE =====\n")
     print(driver.page_source)

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block titulo %}Usuários{% endblock %}
+
+{% block conteudo %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="mb-0">Usuários Cadastrados</h3>
+  <a href="/usuarios/novo" class="btn btn-primary">+ Novo Usuário</a>
+</div>
+
+<form method="get" action="/usuarios" class="row g-2 align-items-end mb-3">
+  <div class="col-auto">
+    <label for="perfil" class="form-label mb-1">Perfil</label>
+    <select class="form-select" id="perfil" name="perfil" onchange="this.form.submit()">
+      <option value="" {{ "selected" if not perfil_filtro else "" }}>Todos</option>
+      <option value="administrador" {{ "selected" if perfil_filtro == "administrador" else "" }}>Administrador</option>
+      <option value="dizimista" {{ "selected" if perfil_filtro == "dizimista" else "" }}>Dizimista</option>
+    </select>
+  </div>
+
+  <div class="col-auto">
+    <label for="tamanho_pagina" class="form-label mb-1">Itens por página</label>
+    <select class="form-select" id="tamanho_pagina" name="tamanho_pagina" onchange="this.form.submit()">
+      {% for opcao in [10, 20, 50, 100] %}
+        <option value="{{ opcao }}" {{ "selected" if tamanho_pagina == opcao else "" }}>{{ opcao }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <input type="hidden" name="pagina" value="1">
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-striped mb-0">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>E-mail</th>
+          <th>Perfil</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for usuario in itens %}
+        <tr>
+          <td>{{ usuario.nome }}</td>
+          <td>{{ usuario.email }}</td>
+          <td>
+            {% if usuario.perfil.value == "administrador" %}
+              <span class="badge bg-primary">Administrador</span>
+            {% else %}
+              <span class="badge bg-secondary">Dizimista</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if usuario.ativo %}
+              <span class="badge badge-aprovado">Ativo</span>
+            {% else %}
+              <span class="badge badge-rejeitado">Inativo</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="/usuarios/{{ usuario.id }}/editar" class="btn btn-sm btn-outline-primary">Editar</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">Nenhum usuário encontrado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if total_paginas > 1 %}
+<nav class="mt-4" aria-label="Paginação de usuários">
+  <ul class="pagination justify-content-center">
+
+    <li class="page-item {{ 'disabled' if pagina <= 1 else '' }}">
+      <a class="page-link"
+         href="/usuarios?pagina={{ pagina - 1 }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}">
+        Anterior
+      </a>
+    </li>
+
+    {% for p in range(1, total_paginas + 1) %}
+      <li class="page-item {{ 'active' if p == pagina else '' }}">
+        <a class="page-link"
+           href="/usuarios?pagina={{ p }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}">
+          {{ p }}
+        </a>
+      </li>
+    {% endfor %}
+
+    <li class="page-item {{ 'disabled' if pagina >= total_paginas else '' }}">
+      <a class="page-link"
+         href="/usuarios?pagina={{ pagina + 1 }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}">
+        Próxima
+      </a>
+    </li>
+
+  </ul>
+</nav>
+{% endif %}
+
+<p class="text-muted text-center mt-2">
+  Mostrando {{ itens|length }} de {{ total_registros }} usuário(s) — página {{ pagina }} de {{ total_paginas }}
+</p>
+{% endblock %}
