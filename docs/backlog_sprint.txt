@@ -1,3 +1,6 @@
-- Padronizar páginas html
+- ✅ Padronizar páginas html
 - definir fluxos de criação de usuários
+- testar se data criado em , e atualizdo em está funcionando
 - criar páginas/endpoints dos cruds
+
+

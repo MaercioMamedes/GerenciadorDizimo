@@ -12,7 +12,10 @@ class UsuarioCreate(BaseModel):
     senha: str = Field(min_length=8, max_length=100)
     telefone: str | None = Field(default=None, max_length=20)
     data_nascimento: date | None = None
-    perfil: PerfilUsuario
+    # Cadastro público sempre cria um usuário DIZIMISTA. A definição como
+    # ADMINISTRADOR (e a vinculação à paróquia) passa a ser feita somente
+    # depois, pelo fluxo de validação de cadastro do administrador (UC04).
+    perfil: PerfilUsuario = PerfilUsuario.DIZIMISTA
     paroquia_id: uuid.UUID | None = None
 
     @field_validator("paroquia_id")

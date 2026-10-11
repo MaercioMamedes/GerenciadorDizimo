@@ -105,28 +105,6 @@
           >
         </div>
 
-        <div class="mb-3">
-          <label for="perfil" class="form-label">Perfil</label>
-          <select class="form-select" id="perfil" name="perfil" required onchange="alternarCampoParoquia(this.value)">
-            <option value="" {{ "selected" if not usuario else "" }} disabled>Selecione...</option>
-            <option value="administrador" {{ "selected" if usuario and usuario.perfil == 'administrador' else "" }}>Administrador</option>
-            <option value="dizimista" {{ "selected" if usuario and usuario.perfil == 'dizimista' else "" }}>Dizimista</option>
-          </select>
-        </div>
-
-        <div class="mb-3" id="campo-paroquia" style="display: none;">
-          <label for="paroquia_id" class="form-label">Paróquia</label>
-          <select class="form-select" id="paroquia_id" name="paroquia_id">
-            <option value="">Selecione...</option>
-            {% for paroquia in paroquias %}
-              <option value="{{ paroquia.id }}" {{ "selected" if usuario and usuario.paroquia_id == paroquia.id else "" }}>
-                {{ paroquia.nome }}
-              </option>
-            {% endfor %}
-          </select>
-          <div class="form-text">Obrigatório apenas para o perfil Administrador.</div>
-        </div>
-
         <div class="d-flex gap-2 mt-4">
           <button type="submit" class="btn btn-primary">Salvar</button>
           <a href="/usuarios" class="btn btn-outline-primary">Cancelar</a>
@@ -137,23 +115,4 @@
   </div>
 </div>
 
-<script>
-  function alternarCampoParoquia(valor) {
-    const campo = document.getElementById('campo-paroquia');
-    const select = document.getElementById('paroquia_id');
-    if (valor === 'administrador') {
-      campo.style.display = 'block';
-      select.required = true;
-    } else {
-      campo.style.display = 'none';
-      select.required = false;
-      select.value = '';
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    const perfilAtual = document.getElementById('perfil').value;
-    alternarCampoParoquia(perfilAtual);
-  });
-</script>
 {% endblock %}

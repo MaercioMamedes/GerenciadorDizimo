@@ -1,8 +1,9 @@
 """
-View (controller) para cadastro de usuário via formulário web (UC03/UC05).
+View (controller) para cadastro e listagem de usuários (UC03/UC05).
 
-GET  /usuarios/novo  -> exibe formulário de cadastro
-POST /usuarios/novo  -> processa o cadastro
+GET  /usuarios        -> lista usuários cadastrados (restrito a administrador)
+GET  /usuarios/novo   -> exibe formulário de cadastro
+POST /usuarios/novo   -> processa o cadastro
 
 TODO: quando o perfil for "dizimista", este fluxo deveria também criar um
 registro em PerfilDizimista vinculado a uma igreja (RF02.5). O template atual
@@ -11,21 +12,43 @@ dizimista (apenas paroquia_id, exclusivo do administrador) — pendente de
 ajuste no template e nesta view antes de UC03 estar 100% completo.
 """
 
-import math
-
-from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi import APIRouter, Depends, Form, Query, Request, status
 from fastapi.responses import RedirectResponse
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.templates import templates
 from app.db.session import get_db
-from app.models.usuario import PerfilUsuario, Usuario
+from app.models.usuario import PerfilUsuario
 from app.schemas.usuario import UsuarioCreate
-from app.services.usuario_service import criar_usuario
-from app.views.deps import get_usuario_atual_opcional
+from app.services.usuario_service import criar_usuario, listar_usuarios_paginado
+from app.views.deps import get_usuario_atual_opcional, require_admin_view
 
 router = APIRouter(prefix="/usuarios", tags=["Views - Usuários"])
+
+
+@router.get("")
+async def listar_usuarios_view(
+    request: Request,
+    pagina: int = Query(default=1, ge=1),
+    tamanho_pagina: int = Query(default=10, ge=1, le=100),
+    perfil: PerfilUsuario | None = Query(default=None),
+    usuario_atual=Depends(require_admin_view),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lista usuários cadastrados, em tabela paginada. Restrito a administrador."""
+    paginacao = await listar_usuarios_paginado(
+        db, pagina=pagina, tamanho_pagina=tamanho_pagina, perfil=perfil
+    )
+    return templates.TemplateResponse(
+        request,
+        "usuarios/lista.html",
+        {
+            "usuario_atual": usuario_atual,
+            "mensagens_flash": [],
+            **paginacao,
+            "perfil_filtro": perfil.value if perfil else "",
+        },
+    )
 
 
 @router.get("/novo")
@@ -38,6 +61,7 @@ async def formulario_cadastro_usuario(
         "usuarios/formulario.html",
         {
             "usuario_atual": usuario_atual,
+            "mensagens_flash": [],
             "usuario": None,
             "erros": [],
             "paroquias": [],  # TODO: listar paróquias reais para o <select> do admin
@@ -52,10 +76,8 @@ async def cadastrar_usuario_via_formulario(
     email: str = Form(...),
     senha: str = Form(...),
     confirmar_senha: str = Form(...),
-    perfil: PerfilUsuario = Form(...),
     telefone: str | None = Form(default=None),
     data_nascimento: str | None = Form(default=None),
-    paroquia_id: str | None = Form(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     erros: list[str] = []
@@ -72,8 +94,9 @@ async def cadastrar_usuario_via_formulario(
                 senha=senha,
                 telefone=telefone or None,
                 data_nascimento=data_nascimento or None,
-                perfil=perfil,
-                paroquia_id=paroquia_id or None,
+                # Cadastro público: sempre DIZIMISTA. O perfil ADMINISTRADOR
+                # e a paróquia só são definidos depois, na validação (UC04).
+                perfil=PerfilUsuario.DIZIMISTA,
             )
         except Exception as exc:
             # Erros de validação do Pydantic (ex.: paroquia_id obrigatório
@@ -86,6 +109,7 @@ async def cadastrar_usuario_via_formulario(
             "usuarios/formulario.html",
             {
                 "usuario_atual": None,
+                "mensagens_flash": [],
                 "usuario": None,
                 "erros": erros,
                 "paroquias": [],
@@ -102,6 +126,7 @@ async def cadastrar_usuario_via_formulario(
             "usuarios/formulario.html",
             {
                 "usuario_atual": None,
+                "mensagens_flash": [],
                 "usuario": None,
                 "erros": [detail],
                 "paroquias": [],
@@ -110,53 +135,3 @@ async def cadastrar_usuario_via_formulario(
         )
 
     return RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
-
-
-async def listar_usuarios_paginado(
-    db: AsyncSession,
-    pagina: int = 1,
-    tamanho_pagina: int = 10,
-    perfil: PerfilUsuario | None = None,
-) -> dict:
-    """
-    Retorna uma página de usuários ordenados por nome, junto com
-    metadados de paginação.
-
-    Args:
-        pagina: número da página (1-indexed).
-        tamanho_pagina: quantidade de registros por página.
-        perfil: filtro opcional por perfil (administrador/dizimista).
-
-    Returns:
-        dict com: itens, pagina, tamanho_pagina, total_registros, total_paginas
-    """
-    pagina = max(pagina, 1)
-    tamanho_pagina = max(min(tamanho_pagina, 100), 1)  # limite de segurança
-
-    filtro = []
-    if perfil is not None:
-        filtro.append(Usuario.perfil == perfil)
-
-    total_registros = (
-        await db.execute(select(func.count()).select_from(Usuario).where(*filtro))
-    ).scalar_one()
-
-    total_paginas = max(math.ceil(total_registros / tamanho_pagina), 1)
-    pagina = min(pagina, total_paginas)
-
-    resultado = await db.execute(
-        select(Usuario)
-        .where(*filtro)
-        .order_by(Usuario.nome)
-        .offset((pagina - 1) * tamanho_pagina)
-        .limit(tamanho_pagina)
-    )
-    itens = resultado.scalars().all()
-
-    return {
-        "itens": itens,
-        "pagina": pagina,
-        "tamanho_pagina": tamanho_pagina,
-        "total_registros": total_registros,
-        "total_paginas": total_paginas,
-    }
