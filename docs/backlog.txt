@@ -1,0 +1,3 @@
+- implementar mecanismo, para caso a aplicação venha para haja um reload automático
+- implementar proteção CSRF
+- implementar proteção cors api

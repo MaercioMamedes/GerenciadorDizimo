@@ -42,7 +42,7 @@ class Usuario(Base, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("paroquia.id"), nullable=True
     )
 
-    ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    ativo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     paroquia: Mapped["Paroquia | None"] = relationship()
     perfil_dizimista: Mapped["PerfilDizimista | None"] = relationship(
@@ -54,5 +54,11 @@ class Usuario(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
+    excluido_em: Mapped[datetime | None] = mapped_column(
+    DateTime(timezone=True), nullable=True
+    )
+
     def __repr__(self):
         return f"Usuario(id={self.id}, nome={self.nome}, perfil={self.perfil})"
+
+

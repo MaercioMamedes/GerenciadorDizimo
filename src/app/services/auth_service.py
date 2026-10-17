@@ -39,6 +39,12 @@ async def autenticar_usuario(
     resultado = await db.execute(select(Usuario).where(Usuario.email == email))
     usuario = resultado.scalar_one_or_none()
 
+    if usuario is not None and usuario.excluido_em is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Esta conta foi excluída e não está mais disponível.",
+        )
+
     # Usuário não existe: não revelar esse detalhe (evita enumeração de e-mails)
     if usuario is None:
         await _registrar_log(

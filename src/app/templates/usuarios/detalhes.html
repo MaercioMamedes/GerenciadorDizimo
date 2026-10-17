@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block titulo %}Detalhes do Usuário{% endblock %}
+
+{% block conteudo %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">Detalhes do Usuário</h3>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('editar_usuario_via_formulario', usuario_id=usuario.id) }}" class="btn btn-primary">Editar</a>
+
+    <form
+      action="{{ url_for('excluir_usuario_via_formulario', usuario_id=usuario.id) }}"
+      method="post"
+      onsubmit="return confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.');"
+      class="d-inline"
+    >
+      <button type="submit" class="btn btn-outline-danger">Excluir</button>
+    </form>
+
+    <a href="{{ url_for('listar_usuarios_view') }}" class="btn btn-outline-primary">Voltar</a>
+  </div>
+</div>
+
+  <div class="card mb-4">
+    <div class="card-header card-header-dizimo">Dados Pessoais</div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Nome completo</dt>
+        <dd class="col-sm-8">{{ usuario.nome }}</dd>
+
+        <dt class="col-sm-4">E-mail</dt>
+        <dd class="col-sm-8">{{ usuario.email }}</dd>
+
+        <dt class="col-sm-4">Telefone</dt>
+        <dd class="col-sm-8">{{ usuario.telefone or "—" }}</dd>
+
+        <dt class="col-sm-4">Data de nascimento</dt>
+        <dd class="col-sm-8">
+          {{ usuario.data_nascimento.strftime("%d/%m/%Y") if usuario.data_nascimento else "—" }}
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header card-header-dizimo">Acesso e Permissões</div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Perfil</dt>
+        <dd class="col-sm-8">
+          {% if usuario.perfil.value == "administrador" %}
+            <span class="badge bg-primary">Administrador</span>
+          {% else %}
+            <span class="badge bg-secondary">Dizimista</span>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-4">Status</dt>
+        <dd class="col-sm-8">
+          {% if usuario.ativo %}
+            <span class="badge badge-aprovado">Ativo</span>
+          {% else %}
+            <span class="badge badge-rejeitado">Inativo</span>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-4">Paróquia</dt>
+        <dd class="col-sm-8">
+          {{ usuario.paroquia.nome if usuario.paroquia else "—" }}
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  {% if usuario.perfil_dizimista %}
+  <div class="card mb-4">
+    <div class="card-header card-header-dizimo">Perfil de Dizimista</div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Igreja</dt>
+        <dd class="col-sm-8">
+          {{ usuario.perfil_dizimista.igreja.nome if usuario.perfil_dizimista.igreja else "—" }}
+        </dd>
+
+        <dt class="col-sm-4">Endereço</dt>
+        <dd class="col-sm-8">{{ usuario.perfil_dizimista.endereco or "—" }}</dd>
+
+        <dt class="col-sm-4">Bairro</dt>
+        <dd class="col-sm-8">{{ usuario.perfil_dizimista.bairro or "—" }}</dd>
+
+        <dt class="col-sm-4">Cidade</dt>
+        <dd class="col-sm-8">{{ usuario.perfil_dizimista.cidade or "—" }}</dd>
+
+        <dt class="col-sm-4">Status do cadastro</dt>
+        <dd class="col-sm-8">
+          {% set status = usuario.perfil_dizimista.status_cadastro.value %}
+          {% if status == "aprovado" %}
+            <span class="badge badge-aprovado">Aprovado</span>
+          {% elif status == "rejeitado" %}
+            <span class="badge badge-rejeitado">Rejeitado</span>
+          {% else %}
+            <span class="badge badge-pendente">Pendente</span>
+          {% endif %}
+        </dd>
+      </dl>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-header card-header-dizimo">Metadados</div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Criado em</dt>
+        <dd class="col-sm-8">{{ usuario.criado_em.strftime("%d/%m/%Y %H:%M") if usuario.criado_em else "—" }}</dd>
+
+        <dt class="col-sm-4">Atualizado em</dt>
+        <dd class="col-sm-8">{{ usuario.atualizado_em.strftime("%d/%m/%Y %H:%M") if usuario.atualizado_em else "—" }}</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

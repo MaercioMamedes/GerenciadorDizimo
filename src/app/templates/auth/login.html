@@ -7,6 +7,10 @@
     <div class="col-md-5">
         <h2 class="mb-4 text-center">Entrar</h2>
 
+        {% if aviso %}
+            <div class="alert alert-warning">{{ aviso }}</div>
+        {% endif %}
+
         {% if erro %}
             <div class="alert alert-danger">{{ erro }}</div>
         {% endif %}

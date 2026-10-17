@@ -4,23 +4,24 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class ParoquiaBase(BaseModel):
-    nome: str = Field(..., min_length=1, max_length=150)
+class ParoquiaCreate(BaseModel):
+    """Usado apenas no CLI/service de criação: cria Paróquia + Igreja Matriz juntas."""
+
     cnpj: str | None = Field(default=None, max_length=18)
-    endereco: str | None = Field(default=None, max_length=255)
+    nome_matriz: str = Field(..., min_length=1, max_length=150)
+    endereco_matriz: str = Field(..., min_length=1, max_length=255)
 
 
-class ParoquiaCreate(ParoquiaBase):
-    pass
+class ParoquiaUpdate(BaseModel):
+    cnpj: str | None = Field(default=None, max_length=18)
 
 
-class ParoquiaUpdate(ParoquiaBase):
-    pass
-
-
-class ParoquiaRead(ParoquiaBase):
+class ParoquiaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    created_at: datetime
-    updated_at: datetime
+    cnpj: str | None
+    nome: str | None  # calculado via property, origem = igreja matriz
+    endereco: str | None  # calculado via property, origem = igreja matriz
+    criado_em: datetime
+    atualizado_em: datetime

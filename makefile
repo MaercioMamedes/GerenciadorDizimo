@@ -35,6 +35,9 @@ logs:
 cria-user-cli:
 	docker compose exec -w /app/src app python -m app.cli.criar_admin
 
+cria-paroquia-cli:
+	docker compose exec -w /app/src app python -m app.cli.criar_paroquia
+	
 migrate:
 	docker compose exec app alembic upgrade head
 

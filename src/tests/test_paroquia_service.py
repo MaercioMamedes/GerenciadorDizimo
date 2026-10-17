@@ -9,9 +9,9 @@ pytestmark = pytest.mark.asyncio
 
 async def test_criar_paroquia(db_session):
     dados = ParoquiaCreate(
-        nome="Paróquia São Francisco",
+        nome_matriz="Paróquia São Francisco",
         cnpj="12.345.678/0001-90",
-        endereco="Rua das Flores, 100",
+        endereco_matriz="Rua das Flores, 100",
     )
     paroquia = await paroquia_service.criar_paroquia(db_session, dados)
 
@@ -21,10 +21,16 @@ async def test_criar_paroquia(db_session):
 
 async def test_listar_paroquias(db_session):
     await paroquia_service.criar_paroquia(
-        db_session, ParoquiaCreate(nome="Paróquia A", cnpj=None, endereco=None)
+        db_session,
+        ParoquiaCreate(
+            nome_matriz="Paróquia A", cnpj=None, endereco_matriz="Endereço A"
+        ),
     )
     await paroquia_service.criar_paroquia(
-        db_session, ParoquiaCreate(nome="Paróquia B", cnpj=None, endereco=None)
+        db_session,
+        ParoquiaCreate(
+            nome_matriz="Paróquia B", cnpj=None, endereco_matriz="Endereço B"
+        ),
     )
 
     resultado = await paroquia_service.listar_paroquias(db_session)
@@ -40,12 +46,15 @@ async def test_obter_paroquia_inexistente_lanca_erro(db_session):
 
 async def test_atualizar_paroquia(db_session):
     paroquia = await paroquia_service.criar_paroquia(
-        db_session, ParoquiaCreate(nome="Nome Antigo", cnpj=None, endereco=None)
+        db_session,
+        ParoquiaCreate(
+            nome_matriz="Nome Antigo", cnpj=None, endereco_matriz="Endereço Antigo"
+        ),
     )
 
-    dados_atualizados = ParoquiaUpdate(nome="Nome Novo", cnpj=None, endereco=None)
+    dados_atualizados = ParoquiaUpdate(cnpj="98.765.432/0001-10")
     atualizada = await paroquia_service.atualizar_paroquia(
         db_session, paroquia.id, dados_atualizados
     )
 
-    assert atualizada.nome == "Nome Novo"
+    assert atualizada.cnpj == "98.765.432/0001-10"

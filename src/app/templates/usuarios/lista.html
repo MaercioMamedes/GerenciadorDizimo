@@ -5,10 +5,10 @@
 {% block conteudo %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h3 class="mb-0">Usuários Cadastrados</h3>
-  <a href="/usuarios/novo" class="btn btn-primary">+ Novo Usuário</a>
+  <a href="{{ url_for('formulario_cadastro_usuario') }}" class="btn btn-primary">+ Novo Usuário</a>
 </div>
 
-<form method="get" action="/usuarios" class="row g-2 align-items-end mb-3">
+<form method="get" action="{{ url_for('listar_usuarios_view') }}" class="row g-2 align-items-end mb-3">
   <div class="col-auto">
     <label for="perfil" class="form-label mb-1">Perfil</label>
     <select class="form-select" id="perfil" name="perfil" onchange="this.form.submit()">
@@ -48,7 +48,12 @@
           <td>{{ usuario.nome }}</td>
           <td>{{ usuario.email }}</td>
           <td>
-            {% if usuario.perfil.value == "administrador" %}
+            {% if usuario.perfil.value == "administrador" and usuario.perfil_dizimista != None %}
+              <span class="badge bg-primary">Administrador</span>
+               <span class="badge bg-secondary">Dizimista</span>
+            
+            {% elif usuario.perfil.value == "administrador"  %}
+    
               <span class="badge bg-primary">Administrador</span>
             {% else %}
               <span class="badge bg-secondary">Dizimista</span>
@@ -62,7 +67,8 @@
             {% endif %}
           </td>
           <td>
-            <a href="/usuarios/{{ usuario.id }}/editar" class="btn btn-sm btn-outline-primary">Editar</a>
+            <a href="{{ url_for('detalhes_usuario_view', usuario_id=usuario.id) }}" class="btn btn-sm btn-outline-secondary">Detalhes</a>
+            <a href="{{ url_for('editar_usuario_via_formulario', usuario_id=usuario.id) }}" class="btn btn-sm btn-outline-primary">Editar</a>
           </td>
         </tr>
         {% else %}

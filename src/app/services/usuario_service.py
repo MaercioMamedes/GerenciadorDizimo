@@ -1,12 +1,15 @@
-import math
+import uuid
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.security import hash_senha
-from app.models.usuario import PerfilUsuario, Usuario
-from app.schemas.usuario import UsuarioCreate
+from app.models.perfil_dizimista import PerfilDizimista
+from app.models.usuario import Usuario
+from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
 
 
 async def criar_usuario(db: AsyncSession, dados: UsuarioCreate) -> Usuario:
@@ -34,51 +37,83 @@ async def criar_usuario(db: AsyncSession, dados: UsuarioCreate) -> Usuario:
     return usuario
 
 
-async def listar_usuarios_paginado(
-    db: AsyncSession,
-    pagina: int = 1,
-    tamanho_pagina: int = 10,
-    perfil: PerfilUsuario | None = None,
-) -> dict:
-    """
-    Retorna uma página de usuários ordenados por nome, junto com
-    metadados de paginação.
-
-    Args:
-        pagina: número da página (1-indexed).
-        tamanho_pagina: quantidade de registros por página.
-        perfil: filtro opcional por perfil (administrador/dizimista).
-
-    Returns:
-        dict com: itens, pagina, tamanho_pagina, total_registros, total_paginas
-    """
-    pagina = max(pagina, 1)
-    tamanho_pagina = max(min(tamanho_pagina, 100), 1)  # limite de segurança
-
-    filtro = []
-    if perfil is not None:
-        filtro.append(Usuario.perfil == perfil)
-
-    total_registros = (
-        await db.execute(select(func.count()).select_from(Usuario).where(*filtro))
-    ).scalar_one()
-
-    total_paginas = max(math.ceil(total_registros / tamanho_pagina), 1)
-    pagina = min(pagina, total_paginas)
-
+async def buscar_usuario_por_id(db: AsyncSession, usuario_id) -> Usuario | None:
+    """Busca um usuário pelo id (uuid), já carregando o perfil_dizimista
+    (e a igreja relacionada) para evitar lazy-load fora de contexto async
+    durante a renderização de templates."""
     resultado = await db.execute(
         select(Usuario)
-        .where(*filtro)
-        .order_by(Usuario.nome)
-        .offset((pagina - 1) * tamanho_pagina)
-        .limit(tamanho_pagina)
+        .options(
+            selectinload(Usuario.perfil_dizimista).selectinload(
+                PerfilDizimista.igreja
+            )
+        )
+        .where(Usuario.id == usuario_id)
     )
-    itens = resultado.scalars().all()
+    return resultado.scalar_one_or_none()
 
-    return {
-        "itens": itens,
-        "pagina": pagina,
-        "tamanho_pagina": tamanho_pagina,
-        "total_registros": total_registros,
-        "total_paginas": total_paginas,
-    }
+
+async def atualizar_usuario(
+    db: AsyncSession, usuario: Usuario, dados: UsuarioUpdate
+) -> Usuario:
+    """Atualiza os dados de um usuário existente, garantindo unicidade de e-mail
+    caso o e-mail tenha sido alterado."""
+    if dados.email != usuario.email:
+        resultado = await db.execute(
+            select(Usuario).where(Usuario.email == dados.email)
+        )
+        if resultado.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Já existe um usuário cadastrado com este e-mail.",
+            )
+
+    usuario.nome = dados.nome
+    usuario.email = dados.email
+    usuario.telefone = dados.telefone
+    usuario.data_nascimento = dados.data_nascimento
+    usuario.perfil = dados.perfil
+    usuario.paroquia_id = dados.paroquia_id
+    usuario.ativo = dados.ativo
+
+    await db.commit()
+    await db.refresh(usuario)
+    return usuario
+
+async def excluir_usuario(db: AsyncSession, usuario: Usuario) -> None:
+    """
+    Exclusão lógica (soft delete) do usuário.
+
+    Não remove a linha do banco: isso preserva o `usuario_id` para futuros
+    registros de Contribuição e evita inconsistências referenciais. Em vez
+    disso:
+      - desativa o acesso ao sistema (ativo = False)
+      - anonimiza dados pessoais (nome, e-mail, telefone, data de nascimento)
+      - invalida a senha (impede qualquer novo login)
+      - marca a data/hora da exclusão (excluido_em)
+      - remove dados pessoais do perfil de dizimista, se existir
+        (endereço, bairro, cidade)
+
+    O perfil de dizimista (vínculo com a igreja) é mantido, pois pode estar
+    referenciado por contribuições futuras.
+    """
+    if usuario.excluido_em is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Usuário já foi excluído.",
+        )
+
+    usuario.nome = "Usuário excluído"
+    usuario.email = f"excluido+{uuid.uuid4().hex[:10]}@anonimizado.local"
+    usuario.telefone = None
+    usuario.data_nascimento = None
+    usuario.senha_hash = ""
+    usuario.ativo = False
+    usuario.excluido_em = datetime.now(UTC)
+
+    if usuario.perfil_dizimista is not None:
+        usuario.perfil_dizimista.endereco = None
+        usuario.perfil_dizimista.bairro = None
+        usuario.perfil_dizimista.cidade = None
+
+    await db.commit()
