@@ -7,12 +7,9 @@ from app.models.usuario import PerfilUsuario
 
 
 class UsuarioCreate(BaseModel):
-    """Usado no autocadastro público (UC03). Perfil é sempre dizimista
-    e a definição de administrador/paróquia só ocorre na validação (UC04)."""
-
     nome: str = Field(min_length=3, max_length=150)
-    email: EmailStr
-    senha: str = Field(min_length=8, max_length=100)
+    email: EmailStr | None = None
+    senha: str | None = Field(default=None, min_length=8, max_length=100)
     telefone: str | None = Field(default=None, max_length=20)
     data_nascimento: date | None = None
     perfil: PerfilUsuario = PerfilUsuario.DIZIMISTA
@@ -20,11 +17,8 @@ class UsuarioCreate(BaseModel):
 
 
 class UsuarioUpdate(BaseModel):
-    """Usado pelo administrador para editar/validar um usuário existente
-    (UC04/UC05). Permite definir perfil e paróquia."""
-
     nome: str = Field(min_length=3, max_length=150)
-    email: EmailStr
+    email: EmailStr | None = None
     telefone: str | None = Field(default=None, max_length=20)
     data_nascimento: date | None = None
     perfil: PerfilUsuario
@@ -45,7 +39,7 @@ class UsuarioResponse(BaseModel):
 
     id: uuid.UUID
     nome: str
-    email: EmailStr
+    email: EmailStr | None
     telefone: str | None
     data_nascimento: date | None
     perfil: PerfilUsuario

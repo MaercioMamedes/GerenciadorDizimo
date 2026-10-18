@@ -32,20 +32,62 @@ from app.views.deps import (
 router = APIRouter(prefix="/usuarios", tags=["Views - Usuários"])
 
 
-@router.get("/novo")
-async def formulario_cadastro_usuario(
+async def _carregar_paroquias(db: AsyncSession) -> list[Paroquia]:
+    """
+    Retorna as paróquias com a relationship de igrejas carregada,
+    necessária para que a property Paroquia.nome funcione no template.
+    """
+    resultado = await db.execute(
+        select(Paroquia).options(selectinload(Paroquia.igrejas)).order_by(Paroquia.id)
+    )
+    return list(resultado.scalars().all())
+
+
+async def _carregar_igrejas(db: AsyncSession) -> list[Igreja]:
+    return list(
+        (await db.execute(select(Igreja).order_by(Igreja.nome))).scalars().all()
+    )
+
+
+def _render_formulario(
     request: Request,
-    usuario_atual=Depends(get_usuario_atual_opcional),
+    usuario_atual,
+    usuario: Usuario | None,
+    erros: list[str],
+    paroquias: list[Paroquia],
+    igrejas: list[Igreja],
+    status_code: int = status.HTTP_200_OK,
 ):
     return templates.TemplateResponse(
         request,
         "usuarios/formulario.html",
         {
             "usuario_atual": usuario_atual,
-            "usuario": None,
-            "erros": [],
-            "paroquias": [],
+            "usuario": usuario,
+            "erros": erros,
+            "paroquias": paroquias,
+            "igrejas": igrejas,
         },
+        status_code=status_code,
+    )
+
+
+@router.get("/novo")
+async def formulario_cadastro_usuario(
+    request: Request,
+    usuario_atual=Depends(get_usuario_atual_opcional),
+    db: AsyncSession = Depends(get_db),
+):
+    igrejas = await _carregar_igrejas(db)
+    paroquias = await _carregar_paroquias(db)
+
+    return _render_formulario(
+        request=request,
+        usuario_atual=usuario_atual,
+        usuario=None,
+        erros=[],
+        paroquias=paroquias,
+        igrejas=igrejas,
     )
 
 
@@ -53,62 +95,135 @@ async def formulario_cadastro_usuario(
 async def cadastrar_usuario_via_formulario(
     request: Request,
     nome: str = Form(...),
-    email: str = Form(...),
-    senha: str = Form(...),
-    confirmar_senha: str = Form(...),
+    email: str | None = Form(default=None),
+    senha: str | None = Form(default=None),
+    confirmar_senha: str | None = Form(default=None),
     telefone: str | None = Form(default=None),
     data_nascimento: str | None = Form(default=None),
+    perfil: str = Form(default="dizimista"),
+    paroquia_id: str | None = Form(default=None),
+    ativo: bool = Form(default=False),
+    tambem_dizimista: bool = Form(default=False),
+    igreja_id: str | None = Form(default=None),
+    endereco: str | None = Form(default=None),
+    bairro: str | None = Form(default=None),
+    cidade: str | None = Form(default=None),
+    status_cadastro: str = Form(default="pendente"),
+    usuario_atual=Depends(get_usuario_atual_opcional),
     db: AsyncSession = Depends(get_db),
 ):
     erros: list[str] = []
+    igrejas = await _carregar_igrejas(db)
+    paroquias = await _carregar_paroquias(db)
 
-    if senha != confirmar_senha:
+    eh_admin = (
+        usuario_atual is not None
+        and usuario_atual.perfil == PerfilUsuario.ADMINISTRADOR
+    )
+
+    # CASO 1: autocadastro público força perfil dizimista e inativo
+    if not eh_admin:
+        perfil = PerfilUsuario.DIZIMISTA.value
+        ativo = False
+        status_cadastro = StatusCadastro.PENDENTE.value
+
+    try:
+        perfil_enum = PerfilUsuario(perfil)
+    except ValueError:
+        perfil_enum = PerfilUsuario.DIZIMISTA
+
+    eh_dizimista = (perfil_enum == PerfilUsuario.DIZIMISTA) or (
+        perfil_enum == PerfilUsuario.ADMINISTRADOR and tambem_dizimista
+    )
+
+    # Validações conforme o perfil
+    if perfil_enum == PerfilUsuario.ADMINISTRADOR:
+        if not email:
+            erros.append("E-mail é obrigatório para o perfil Administrador.")
+        if not senha:
+            erros.append("Senha é obrigatória para o perfil Administrador.")
+        if not paroquia_id:
+            erros.append("Paróquia é obrigatória para o perfil Administrador.")
+    elif not eh_admin:
+        # CASO 1: autocadastro exige e-mail/senha
+        if not email:
+            erros.append("E-mail é obrigatório para o cadastro.")
+        if not senha:
+            erros.append("Senha é obrigatória para o cadastro.")
+
+    if senha and confirmar_senha and senha != confirmar_senha:
         erros.append("As senhas informadas não coincidem.")
+
+    if eh_dizimista and not igreja_id:
+        erros.append("Selecione a igreja para o perfil de Dizimista.")
 
     dados: UsuarioCreate | None = None
     if not erros:
         try:
             dados = UsuarioCreate(
                 nome=nome,
-                email=email,
-                senha=senha,
+                email=email or None,
+                senha=senha or None,
                 telefone=telefone or None,
                 data_nascimento=data_nascimento or None,
+                perfil=perfil_enum,
+                paroquia_id=paroquia_id or None,
             )
         except Exception as exc:
             erros.append(str(exc))
 
     if erros:
-        return templates.TemplateResponse(
-            request,
-            "usuarios/formulario.html",
-            {
-                "usuario_atual": None,
-                "usuario": None,
-                "erros": erros,
-                "paroquias": [],
-            },
+        return _render_formulario(
+            request=request,
+            usuario_atual=usuario_atual,
+            usuario=None,
+            erros=erros,
+            paroquias=paroquias,
+            igrejas=igrejas,
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
 
     try:
-        await criar_usuario(db, dados)
+        usuario = await criar_usuario(db, dados)
+
+        if eh_dizimista and igreja_id:
+            perfil_diz = PerfilDizimista(
+                usuario_id=usuario.id,
+                igreja_id=uuid.UUID(igreja_id),
+                endereco=endereco or None,
+                bairro=bairro or None,
+                cidade=cidade or None,
+                status_cadastro=StatusCadastro(status_cadastro)
+                if status_cadastro
+                else StatusCadastro.PENDENTE,
+            )
+            db.add(perfil_diz)
+
+        # Se admin criou ativo, aplica após a criação (modelo nasce inativo)
+        if eh_admin and ativo:
+            usuario.ativo = True
+
+        await db.commit()
+        await db.refresh(usuario)
+
     except Exception as exc:
         detail = getattr(exc, "detail", str(exc))
-        return templates.TemplateResponse(
-            request,
-            "usuarios/formulario.html",
-            {
-                "usuario_atual": None,
-                "usuario": None,
-                "erros": [detail],
-                "paroquias": [],
-            },
+        return _render_formulario(
+            request=request,
+            usuario_atual=usuario_atual,
+            usuario=None,
+            erros=[detail],
+            paroquias=paroquias,
+            igrejas=igrejas,
             status_code=getattr(exc, "status_code", status.HTTP_400_BAD_REQUEST),
         )
 
+    if eh_admin:
+        return RedirectResponse(url="/usuarios", status_code=status.HTTP_303_SEE_OTHER)
+
     return RedirectResponse(
-        url="/auth/login?cadastro_pendente=true", status_code=status.HTTP_303_SEE_OTHER
+        url="/auth/login?cadastro_pendente=true",
+        status_code=status.HTTP_303_SEE_OTHER,
     )
 
 
@@ -117,12 +232,10 @@ async def listar_usuarios_view(
     request: Request,
     pagina: int = 1,
     tamanho_pagina: int = 10,
-    perfil: str | None = None,  # <- trocado de PerfilUsuario | None para str | None
+    perfil: str | None = None,
     usuario_atual=Depends(require_admin_view),
     db: AsyncSession = Depends(get_db),
 ):
-    # Normaliza: "" (vindo do <option value="">Todos</option>)
-    #  é tratado como "sem filtro"
     perfil_enum: PerfilUsuario | None = None
     if perfil:
         try:
@@ -133,8 +246,6 @@ async def listar_usuarios_view(
     resultado = await listar_usuarios_paginado(
         db, pagina=pagina, tamanho_pagina=tamanho_pagina, perfil=perfil_enum
     )
-
-    print(perfil_enum)  # DEBUG
 
     return templates.TemplateResponse(
         request,
@@ -147,7 +258,6 @@ async def listar_usuarios_view(
     )
 
 
-# IMPORTANTE: esta rota precisa vir ANTES de "/{usuario_id}/editar"
 @router.get("/{usuario_id}")
 async def detalhes_usuario_view(
     request: Request,
@@ -202,18 +312,16 @@ async def formulario_editar_usuario(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado."
         )
 
-    igrejas = (await db.execute(select(Igreja).order_by(Igreja.nome))).scalars().all()
+    igrejas = await _carregar_igrejas(db)
+    paroquias = await _carregar_paroquias(db)
 
-    return templates.TemplateResponse(
-        request,
-        "usuarios/formulario.html",
-        {
-            "usuario_atual": usuario_atual,
-            "usuario": usuario,
-            "erros": [],
-            "paroquias": [],  # TODO: listar paróquias reais para o <select>
-            "igrejas": igrejas,
-        },
+    return _render_formulario(
+        request=request,
+        usuario_atual=usuario_atual,
+        usuario=usuario,
+        erros=[],
+        paroquias=paroquias,
+        igrejas=igrejas,
     )
 
 
@@ -222,7 +330,7 @@ async def editar_usuario_via_formulario(
     request: Request,
     usuario_id: uuid.UUID,
     nome: str = Form(...),
-    email: str = Form(...),
+    email: str | None = Form(default=None),
     telefone: str | None = Form(default=None),
     data_nascimento: str | None = Form(default=None),
     perfil: PerfilUsuario = Form(...),
@@ -252,58 +360,66 @@ async def editar_usuario_via_formulario(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado."
         )
 
-    igrejas = (await db.execute(select(Igreja).order_by(Igreja.nome))).scalars().all()
+    igrejas = await _carregar_igrejas(db)
+    paroquias = await _carregar_paroquias(db)
 
     erros: list[str] = []
-    dados: UsuarioUpdate | None = None
-    try:
-        dados = UsuarioUpdate(
-            nome=nome,
-            email=email,
-            telefone=telefone or None,
-            data_nascimento=data_nascimento or None,
-            perfil=perfil,
-            paroquia_id=paroquia_id or None,
-            ativo=ativo,
-        )
-    except Exception as exc:
-        erros.append(str(exc))
 
-    # Validação específica do perfil de dizimista "extra"
-    if tambem_dizimista and not igreja_id:
+    if perfil == PerfilUsuario.ADMINISTRADOR and not paroquia_id:
+        erros.append("Paróquia é obrigatória para o perfil Administrador.")
+
+    eh_dizimista = (perfil == PerfilUsuario.DIZIMISTA) or (
+        perfil == PerfilUsuario.ADMINISTRADOR and tambem_dizimista
+    )
+
+    if eh_dizimista and not igreja_id:
         erros.append("Selecione a igreja para o perfil de Dizimista.")
 
+    dados: UsuarioUpdate | None = None
+    if not erros:
+        try:
+            dados = UsuarioUpdate(
+                nome=nome,
+                email=email or None,
+                telefone=telefone or None,
+                data_nascimento=data_nascimento or None,
+                perfil=perfil,
+                paroquia_id=paroquia_id or None,
+                ativo=ativo,
+            )
+        except Exception as exc:
+            erros.append(str(exc))
+
     if erros:
-        return templates.TemplateResponse(
-            request,
-            "usuarios/formulario.html",
-            {
-                "usuario_atual": usuario_atual,
-                "usuario": usuario,
-                "erros": erros,
-                "paroquias": [],
-                "igrejas": igrejas,
-            },
+        return _render_formulario(
+            request=request,
+            usuario_atual=usuario_atual,
+            usuario=usuario,
+            erros=erros,
+            paroquias=paroquias,
+            igrejas=igrejas,
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
 
     try:
         await atualizar_usuario(db, usuario, dados)
 
-        # Sincroniza o perfil de Dizimista (independente do campo `perfil` de RBAC)
-        if tambem_dizimista:
+        if eh_dizimista:
+            igreja_uuid = uuid.UUID(igreja_id) if igreja_id else None
             if usuario.perfil_dizimista is None:
-                novo_perfil_dizimista = PerfilDizimista(
-                    usuario_id=usuario.id,
-                    igreja_id=uuid.UUID(igreja_id),
-                    endereco=endereco or None,
-                    bairro=bairro or None,
-                    cidade=cidade or None,
-                    status_cadastro=status_cadastro or StatusCadastro.PENDENTE,
-                )
-                db.add(novo_perfil_dizimista)
+                if igreja_uuid:
+                    novo_perfil_dizimista = PerfilDizimista(
+                        usuario_id=usuario.id,
+                        igreja_id=igreja_uuid,
+                        endereco=endereco or None,
+                        bairro=bairro or None,
+                        cidade=cidade or None,
+                        status_cadastro=status_cadastro or StatusCadastro.PENDENTE,
+                    )
+                    db.add(novo_perfil_dizimista)
             else:
-                usuario.perfil_dizimista.igreja_id = uuid.UUID(igreja_id)
+                if igreja_uuid:
+                    usuario.perfil_dizimista.igreja_id = igreja_uuid
                 usuario.perfil_dizimista.endereco = endereco or None
                 usuario.perfil_dizimista.bairro = bairro or None
                 usuario.perfil_dizimista.cidade = cidade or None
@@ -316,16 +432,13 @@ async def editar_usuario_via_formulario(
         await db.commit()
     except Exception as exc:
         detail = getattr(exc, "detail", str(exc))
-        return templates.TemplateResponse(
-            request,
-            "usuarios/formulario.html",
-            {
-                "usuario_atual": usuario_atual,
-                "usuario": usuario,
-                "erros": [detail],
-                "paroquias": [],
-                "igrejas": igrejas,
-            },
+        return _render_formulario(
+            request=request,
+            usuario_atual=usuario_atual,
+            usuario=usuario,
+            erros=[detail],
+            paroquias=paroquias,
+            igrejas=igrejas,
             status_code=getattr(exc, "status_code", status.HTTP_400_BAD_REQUEST),
         )
 
@@ -343,11 +456,10 @@ async def listar_usuarios_paginado(
 
     filtro = []
     if perfil == PerfilUsuario.DIZIMISTA:
-        # Retorna dizimistas puros OU administradores que também são dizimistas
         filtro.append(
             or_(
                 Usuario.perfil == PerfilUsuario.DIZIMISTA,
-                Usuario.perfil_dizimista.has()
+                Usuario.perfil_dizimista.has(),
             )
         )
     elif perfil == PerfilUsuario.ADMINISTRADOR:
@@ -392,9 +504,7 @@ async def excluir_usuario_via_formulario(
             detail="É necessário estar autenticado.",
         )
 
-    # Regra de permissão: apenas admin ou o próprio usuário podem excluir.
     if usuario_atual.perfil == PerfilUsuario.ADMINISTRADOR:
-
         stmt = (
             select(Usuario)
             .where(Usuario.id == usuario_id)

@@ -1,4 +1,4 @@
-.PHONY: up down test test-unit test-selenium selenium-up selenium-down logs
+.PHONY: up down test test-unit test-selenium selenium-up selenium-down logs migration
 
 up:
 	docker compose --profile dev up -d
@@ -38,9 +38,16 @@ cria-user-cli:
 cria-paroquia-cli:
 	docker compose exec -w /app/src app python -m app.cli.criar_paroquia
 	
-migrate:
-	docker compose exec app alembic upgrade head
-
 code-format-check:
 	docker compose exec app poetry run ruff format src/
 	docker compose exec app poetry run ruff check --fix src/
+
+migration:
+	@if [ -z "$(msg)" ]; then \
+		echo "Uso: make migration msg=\"mensagem da migração\""; \
+		exit 1; \
+	fi
+	docker compose exec app alembic revision --autogenerate -m "$(msg)"
+
+migrate:
+	docker compose exec app alembic upgrade head

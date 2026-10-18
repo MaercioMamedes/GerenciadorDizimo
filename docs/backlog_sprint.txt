@@ -1,7 +1,7 @@
 - ✅ Padronizar páginas html
 - testar se data criado em , e atualizdo em está funcionando
 - ajustar timezone nas views
-- implementar atributo número de registro
+- ✅ implementar atributo número de registro
 - criar páginas/endpoints dos cruds
 - garatir que possa haver cadastro de dizimista mesmo que tenha email cadastrado.
     *USUÁRIOS*
@@ -15,3 +15,4 @@
         - implementar filtro por ativo, inativo, pendente de aprovação
 
 - se um usuário admnistrador mudar seu perfil para dizimista. ao salvar o sistema deve fazer o logoff e redirecionar para home
+- ao realizar o autocadastro e o sistema redirecionar para tela de com mensagem de aguardando validação. A url nao deve aparecer pendente=true

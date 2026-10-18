@@ -55,10 +55,8 @@ class Usuario(Base, TimestampMixin):
     )
 
     excluido_em: Mapped[datetime | None] = mapped_column(
-    DateTime(timezone=True), nullable=True
+        DateTime(timezone=True), nullable=True
     )
 
     def __repr__(self):
         return f"Usuario(id={self.id}, nome={self.nome}, perfil={self.perfil})"
-
-

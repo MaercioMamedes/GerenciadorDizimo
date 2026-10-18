@@ -1,10 +1,8 @@
 async function carregarParoquias(selectEl, idSelecionado) {
   if (selectEl.dataset.carregado === 'true') return;
   try {
-    const resposta = await fetch('/paroquias/json', {
-      credentials: 'include', // garante envio do cookie de sessão
-    });
-    if (!resposta.ok) throw new Error(`Falha ao buscar paróquias (status ${resposta.status})`);
+    const resposta = await fetch('/paroquias/json');
+    if (!resposta.ok) throw new Error('Falha ao buscar paróquias');
     const paroquias = await resposta.json();
     selectEl.innerHTML = '<option value="">Selecione...</option>';
     paroquias.forEach(function (p) {
@@ -21,28 +19,33 @@ async function carregarParoquias(selectEl, idSelecionado) {
 }
 
 function alternarCampoParoquia(valor) {
-  const campo = document.getElementById('campo-paroquia');
-  const select = document.getElementById('paroquia_id');
+  const campoParoquia = document.getElementById('campo-paroquia');
+  const selectParoquia = document.getElementById('paroquia_id');
   const campoTambemDizimista = document.getElementById('campo-tambem-dizimista');
   const dizimistaCheckbox = document.getElementById('tambem_dizimista');
 
   if (valor === 'administrador') {
-    campo.style.display = 'block';
-    select.required = true;
-    carregarParoquias(select, select.dataset.selecionado || '');
-
-    if (campoTambemDizimista) campoTambemDizimista.style.display = 'block';
-  } else {
-    campo.style.display = 'none';
-    select.required = false;
-    select.value = '';
-
-    // Perfil Dizimista já É dizimista: não faz sentido marcar "também é dizimista"
-    if (campoTambemDizimista) campoTambemDizimista.style.display = 'none';
-    if (dizimistaCheckbox && dizimistaCheckbox.checked) {
-      dizimistaCheckbox.checked = false;
-      alternarCampoDizimista(false);
+    if (campoParoquia) {
+      campoParoquia.style.display = 'block';
+      selectParoquia.required = true;
+      carregarParoquias(selectParoquia, selectParoquia.dataset.selecionado || '');
     }
+    if (campoTambemDizimista) campoTambemDizimista.style.display = 'block';
+
+    // Campos de dizimista só aparecem se o checkbox "também é dizimista" estiver marcado
+    alternarCampoDizimista(dizimistaCheckbox ? dizimistaCheckbox.checked : false);
+  } else {
+    // Perfil Dizimista: oculta paróquia, oculta "também é dizimista" e limpa checkbox
+    if (campoParoquia) {
+      campoParoquia.style.display = 'none';
+      selectParoquia.required = false;
+      selectParoquia.value = '';
+    }
+    if (campoTambemDizimista) campoTambemDizimista.style.display = 'none';
+    if (dizimistaCheckbox) dizimistaCheckbox.checked = false;
+
+    // Dizimista SEMPRE exibe os campos de dizimista
+    alternarCampoDizimista(true);
   }
 }
 
@@ -66,12 +69,23 @@ function alternarCampoDizimista(marcado) {
 
 document.addEventListener('DOMContentLoaded', function () {
   const perfilSelect = document.getElementById('perfil');
-  if (perfilSelect) {
-    alternarCampoParoquia(perfilSelect.value);
-  }
 
-  const dizimistaCheckbox = document.getElementById('tambem_dizimista');
-  if (dizimistaCheckbox) {
-    alternarCampoDizimista(dizimistaCheckbox.checked);
+  if (perfilSelect) {
+    // Admin cadastrando: executa uma única vez conforme o perfil selecionado
+    alternarCampoParoquia(perfilSelect.value);
+
+    perfilSelect.addEventListener('change', function () {
+      alternarCampoParoquia(this.value);
+    });
+
+    const dizimistaCheckbox = document.getElementById('tambem_dizimista');
+    if (dizimistaCheckbox) {
+      dizimistaCheckbox.addEventListener('change', function () {
+        alternarCampoDizimista(this.checked);
+      });
+    }
+  } else {
+    // Autocadastro público: sem select de perfil, sempre exibe campos de dizimista
+    alternarCampoDizimista(true);
   }
 });

@@ -2,7 +2,7 @@ import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, String
+from sqlalchemy import Enum, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,6 +38,13 @@ class PerfilDizimista(Base, TimestampMixin):
         nullable=False,
     )
 
+    # Número de registro do dizimista (manual ou sugerido pelo sistema).
+    # Pode ser nulo enquanto não for validado/associado.
+    # Unique garante que não haja duplicidade entre novos e migrados.
+    numero_registro: Mapped[int | None] = mapped_column(
+        Integer, unique=True, nullable=True
+    )
+
     # Endereço do dizimista
     endereco: Mapped[str | None] = mapped_column(String(255), nullable=True)
     bairro: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -49,11 +56,13 @@ class PerfilDizimista(Base, TimestampMixin):
     def __repr__(self):
         return f"""
             PerfilDizimista(id={self.id},
-            usuario_id={self.usuario_id}, 
+            usuario_id={self.usuario_id},
+            numero_registro={self.numero_registro},
             status={self.status_cadastro})"""
 
     def __str__(self):
         return f"""
             PerfilDizimista(id={self.id},
-            usuario_id={self.usuario_id}, 
+            usuario_id={self.usuario_id},
+            numero_registro={self.numero_registro},
             status={self.status_cadastro})"""

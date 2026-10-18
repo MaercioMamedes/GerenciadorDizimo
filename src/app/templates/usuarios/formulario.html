@@ -37,8 +37,16 @@
           >
         </div>
 
+        {% set admin_cadastrando = usuario_atual and usuario_atual.perfil.value == 'administrador' %}
+        {% set eh_cadastro = not usuario %}
+
         <div class="mb-3">
-          <label for="email" class="form-label">E-mail</label>
+          <label for="email" class="form-label">
+            E-mail
+            {% if admin_cadastrando and eh_cadastro %}
+              <span class="text-muted">(opcional para dizimista)</span>
+            {% endif %}
+          </label>
           <input
             type="email"
             class="form-control"
@@ -47,13 +55,18 @@
             maxlength="150"
             placeholder="exemplo@email.com"
             value="{{ usuario.email if usuario else '' }}"
-            required
+            {{ "required" if not admin_cadastrando else "" }}
           >
         </div>
 
-        {% if not usuario %}
+        {% if eh_cadastro %}
         <div class="mb-3">
-          <label for="senha" class="form-label">Senha</label>
+          <label for="senha" class="form-label">
+            Senha
+            {% if admin_cadastrando %}
+              <span class="text-muted">(opcional para dizimista)</span>
+            {% endif %}
+          </label>
           <input
             type="password"
             class="form-control"
@@ -62,12 +75,17 @@
             minlength="8"
             maxlength="100"
             placeholder="Mínimo 8 caracteres"
-            required
+            {{ "required" if not admin_cadastrando else "" }}
           >
         </div>
 
         <div class="mb-3">
-          <label for="confirmar_senha" class="form-label">Confirmar senha</label>
+          <label for="confirmar_senha" class="form-label">
+            Confirmar senha
+            {% if admin_cadastrando %}
+              <span class="text-muted">(opcional para dizimista)</span>
+            {% endif %}
+          </label>
           <input
             type="password"
             class="form-control"
@@ -76,7 +94,7 @@
             minlength="8"
             maxlength="100"
             placeholder="Repita a senha"
-            required
+            {{ "required" if not admin_cadastrando else "" }}
           >
         </div>
         {% endif %}
@@ -105,50 +123,57 @@
           >
         </div>
 
-        {% if usuario %}
-        <!-- Perfil e paróquia só são definidos pelo administrador, na edição/validação do cadastro -->
-        <div class="mb-3">
-          <label for="perfil" class="form-label">Perfil</label>
-          <select class="form-select" id="perfil" name="perfil" required onchange="alternarCampoParoquia(this.value)">
-            <option value="administrador" {{ "selected" if usuario.perfil.value == 'administrador' else "" }}>Administrador</option>
-            <option value="dizimista" {{ "selected" if usuario.perfil.value == 'dizimista' else "" }}>Dizimista</option>
-          </select>
-        </div>
+        {% if admin_cadastrando %}
+          <!-- CASO 2 e 3: administrador logado -->
+          <div class="mb-3">
+            <label for="perfil" class="form-label">Perfil</label>
+            <select class="form-select" id="perfil" name="perfil" required onchange="alternarCampoParoquia(this.value)">
+              <option value="dizimista" {{ "selected" if not usuario or usuario.perfil.value == 'dizimista' else "" }}>Dizimista</option>
+              <option value="administrador" {{ "selected" if usuario and usuario.perfil.value == 'administrador' else "" }}>Administrador</option>
+            </select>
+          </div>
 
-        <div class="mb-3" id="campo-paroquia" style="display: none;">
-          <label for="paroquia_id" class="form-label">Paróquia</label>
-          <select class="form-select" id="paroquia_id" name="paroquia_id">
-            <option value="">Selecione...</option>
-            {% for paroquia in paroquias %}
-              <option value="{{ paroquia.id }}" {{ "selected" if usuario.paroquia_id == paroquia.id else "" }}>
-                {{ paroquia.nome }}
-              </option>
-            {% endfor %}
-          </select>
-          <div class="form-text">Obrigatório apenas para o perfil Administrador.</div>
-        </div>
+          <div class="mb-3" id="campo-paroquia" style="display: none;">
+            <label for="paroquia_id" class="form-label">Paróquia</label>
+              <select id="paroquia_id" name="paroquia_id" class="form-select"
+                      data-selecionado="{{ usuario.paroquia_id if usuario else '' }}">
+                <option value="">Selecione...</option>
+              {% for paroquia in paroquias %}
+                <option value="{{ paroquia.id }}" {{ "selected" if usuario and usuario.paroquia_id == paroquia.id else "" }}>
+                  {{ paroquia.nome }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Obrigatória para o perfil Administrador.</div>
+          </div>
 
-        <div class="mb-3 form-check">
-          <input type="checkbox" class="form-check-input" id="ativo" name="ativo" value="true" {{ "checked" if usuario.ativo else "" }}>
-          <label class="form-check-label" for="ativo">Usuário ativo</label>
-        </div>
+          <div class="mb-3 form-check" id="campo-ativo">
+            <input type="checkbox" class="form-check-input" id="ativo" name="ativo" value="true"
+              {{ "checked" if usuario and usuario.ativo else ("checked" if not usuario else "") }}>
+            <label class="form-check-label" for="ativo">Usuário ativo</label>
+          </div>
 
-        <div class="mb-3 form-check" id="campo-tambem-dizimista">
-          <input
-            type="checkbox"
-            class="form-check-input"
-            id="tambem_dizimista"
-            name="tambem_dizimista"
-            value="true"
-            onchange="alternarCampoDizimista(this.checked)"
-            {{ "checked" if usuario.perfil_dizimista else "" }}
-          >
-          <label class="form-check-label" for="tambem_dizimista">
-            Este usuário também possui perfil de Dizimista
-          </label>
-        </div>
+          <div class="mb-3 form-check" id="campo-tambem-dizimista" style="display: none;">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="tambem_dizimista"
+              name="tambem_dizimista"
+              value="true"
+              {{ "checked" if usuario and usuario.perfil_dizimista else "" }}
+            >
+            <label class="form-check-label" for="tambem_dizimista">
+              Este administrador também possui perfil de Dizimista
+            </label>
+          </div>
+        {% else %}
+          <!-- CASO 1: autocadastro público -->
+          <input type="hidden" name="perfil" value="dizimista">
+          <input type="hidden" name="ativo" value="false">
+        {% endif %}
 
-        <div id="campos-dizimista" style="display: none;">
+        <!-- Campos de Dizimista -->
+        <div id="campos-dizimista">
           <hr>
           <h6 class="mb-3 text-muted">Dados de Dizimista</h6>
 
@@ -157,7 +182,7 @@
             <select class="form-select" id="igreja_id" name="igreja_id">
               <option value="">Selecione...</option>
               {% for igreja in igrejas %}
-                <option value="{{ igreja.id }}" {{ "selected" if usuario.perfil_dizimista and usuario.perfil_dizimista.igreja_id == igreja.id else "" }}>
+                <option value="{{ igreja.id }}" {{ "selected" if usuario and usuario.perfil_dizimista and usuario.perfil_dizimista.igreja_id == igreja.id else "" }}>
                   {{ igreja.nome }}
                 </option>
               {% endfor %}
@@ -172,7 +197,7 @@
               id="endereco"
               name="endereco"
               maxlength="255"
-              value="{{ usuario.perfil_dizimista.endereco if usuario.perfil_dizimista else '' }}"
+              value="{{ usuario.perfil_dizimista.endereco if usuario and usuario.perfil_dizimista else '' }}"
             >
           </div>
 
@@ -184,7 +209,7 @@
               id="bairro"
               name="bairro"
               maxlength="100"
-              value="{{ usuario.perfil_dizimista.bairro if usuario.perfil_dizimista else '' }}"
+              value="{{ usuario.perfil_dizimista.bairro if usuario and usuario.perfil_dizimista else '' }}"
             >
           </div>
 
@@ -196,20 +221,23 @@
               id="cidade"
               name="cidade"
               maxlength="100"
-              value="{{ usuario.perfil_dizimista.cidade if usuario.perfil_dizimista else '' }}"
+              value="{{ usuario.perfil_dizimista.cidade if usuario and usuario.perfil_dizimista else '' }}"
             >
           </div>
 
-          <div class="mb-3">
-            <label for="status_cadastro" class="form-label">Status do cadastro de dizimista</label>
-            <select class="form-select" id="status_cadastro" name="status_cadastro">
-              <option value="pendente" {{ "selected" if usuario.perfil_dizimista and usuario.perfil_dizimista.status_cadastro.value == 'pendente' else "" }}>Pendente</option>
-              <option value="aprovado" {{ "selected" if usuario.perfil_dizimista and usuario.perfil_dizimista.status_cadastro.value == 'aprovado' else "" }}>Aprovado</option>
-              <option value="rejeitado" {{ "selected" if usuario.perfil_dizimista and usuario.perfil_dizimista.status_cadastro.value == 'rejeitado' else "" }}>Rejeitado</option>
-            </select>
-          </div>
+          {% if admin_cadastrando %}
+            <div class="mb-3">
+              <label for="status_cadastro" class="form-label">Status do cadastro de dizimista</label>
+              <select class="form-select" id="status_cadastro" name="status_cadastro">
+                <option value="pendente" {{ "selected" if usuario and usuario.perfil_dizimista and usuario.perfil_dizimista.status_cadastro.value == 'pendente' else "" }}>Pendente</option>
+                <option value="aprovado" {{ "selected" if usuario and usuario.perfil_dizimista and usuario.perfil_dizimista.status_cadastro.value == 'aprovado' else "" }}>Aprovado</option>
+                <option value="rejeitado" {{ "selected" if usuario and usuario.perfil_dizimista and usuario.perfil_dizimista.status_cadastro.value == 'rejeitado' else "" }}>Rejeitado</option>
+              </select>
+            </div>
+          {% else %}
+            <input type="hidden" name="status_cadastro" value="pendente">
+          {% endif %}
         </div>
-        {% endif %}
 
         <div class="d-flex gap-2 mt-4">
           <button type="submit" class="btn btn-primary">Salvar</button>
@@ -223,7 +251,5 @@
 {% endblock %}
 
 {% block scripts_extra %}
-{% if usuario %}
 <script src="{{ url_for('static', path='js/usuario/usuario-formulario.js') }}"></script>
-{% endif %}
 {% endblock %}
