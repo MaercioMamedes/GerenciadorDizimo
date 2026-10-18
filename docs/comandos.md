@@ -52,3 +52,7 @@ poetry install
 poetry run ruff format src/
 poetry run ruff check --fix src/
 ```
+
+make test-unit-log   # testes unitários + logs do app durante a execução
+make test-log        # testes selenium + logs do app durante a execução
+make app-log TEMPO=60  # captura logs por 60 segundos

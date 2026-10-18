@@ -191,3 +191,5 @@ docker-logs-*.csv
 pyproject_toml.txt
 makefile.txt
 docs/erros.txt
+.log
+
