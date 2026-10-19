@@ -60,8 +60,8 @@ async def atualizar_usuario(
             )
 
     usuario.nome = dados.nome
-    if dados.email is not None:
-        usuario.email = dados.email
+    # E-mail pode ser None para dizimistas cadastrados sem acesso ao sistema.
+    usuario.email = dados.email
     usuario.telefone = dados.telefone
     usuario.data_nascimento = dados.data_nascimento
     usuario.perfil = dados.perfil

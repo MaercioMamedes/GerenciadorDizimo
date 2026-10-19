@@ -26,7 +26,12 @@ class Usuario(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     nome: Mapped[str] = mapped_column(String(150), nullable=False)
-    email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
+
+    # E-mail é obrigatório apenas para administradores e para autocadastro.
+    # Dizimistas cadastrados por um administrador podem não possuir e-mail.
+    email: Mapped[str | None] = mapped_column(
+        String(150), unique=True, nullable=True
+    )
     senha_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     telefone: Mapped[str | None] = mapped_column(String(20), nullable=True)

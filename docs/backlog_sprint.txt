@@ -7,7 +7,7 @@
     *USUÁRIOS*
         - ✅ definir fluxos de criação de usuários
         - criação de usuário
-        - quando for editar/criar um usuário dizimista deve-se informar à igreja/paróquia que ele pertence
+        - ✅ quando for editar/criar um usuário dizimista deve-se informar à igreja/paróquia que ele pertence
         - lista de usuário(somente para adm)
         - detalhes de usuário(somente para adm ou o próprio usuário)
         - exclusão de usuário(somente para adm)

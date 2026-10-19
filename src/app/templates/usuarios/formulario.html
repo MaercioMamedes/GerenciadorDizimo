@@ -43,8 +43,8 @@
         <div class="mb-3">
           <label for="email" class="form-label">
             E-mail
-            {% if admin_cadastrando and eh_cadastro %}
-              <span class="text-muted">(opcional para dizimista)</span>
+            {% if admin_cadastrando %}
+              <span class="text-muted">(opcional para Dizimista)</span>
             {% endif %}
           </label>
           <input
@@ -64,7 +64,7 @@
           <label for="senha" class="form-label">
             Senha
             {% if admin_cadastrando %}
-              <span class="text-muted">(opcional para dizimista)</span>
+              <span class="text-muted">(opcional para Dizimista)</span>
             {% endif %}
           </label>
           <input
@@ -83,7 +83,7 @@
           <label for="confirmar_senha" class="form-label">
             Confirmar senha
             {% if admin_cadastrando %}
-              <span class="text-muted">(opcional para dizimista)</span>
+              <span class="text-muted">(opcional para Dizimista)</span>
             {% endif %}
           </label>
           <input
@@ -176,6 +176,23 @@
         <div id="campos-dizimista">
           <hr>
           <h6 class="mb-3 text-muted">Dados de Dizimista</h6>
+
+          <div class="mb-3">
+            <label for="numero_registro" class="form-label">
+              Número de registro <span class="text-muted">(opcional)</span>
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="numero_registro"
+              name="numero_registro"
+              min="1"
+              step="1"
+              placeholder="Ex: 123"
+              value="{{ usuario.perfil_dizimista.numero_registro if usuario and usuario.perfil_dizimista else '' }}"
+            >
+            <div class="form-text">Deve ser único no sistema. Deixe em branco para não atribuir.</div>
+          </div>
 
           <div class="mb-3">
             <label for="igreja_id" class="form-label">Igreja</label>

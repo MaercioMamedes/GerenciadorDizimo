@@ -1,4 +1,4 @@
-.PHONY: up down test test-unit test-selenium selenium-up selenium-down logs test-log app-log test-unit-log migration
+.PHONY: up down test test-unit test-selenium selenium-up selenium-down logs test-log app-log test-unit-log migration tree
 
 SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -c
@@ -73,3 +73,13 @@ migration:
 
 migrate:
 	docker compose exec app alembic upgrade head
+
+tree:
+	@mkdir -p docs
+	@if command -v tree >/dev/null 2>&1; then \
+		tree -I '__pycache__|*.pyc|.git|.pytest_cache|.venv|venv|node_modules|*.egg-info|.ruff_cache|.mypy_cache' --dirsfirst > docs/tree.txt; \
+	else \
+		echo "Comando 'tree' nao encontrado. Instale com: apt-get install tree" >&2; \
+		exit 1; \
+	fi
+	@echo "Arvore do projeto salva em docs/tree.txt"

@@ -13,6 +13,7 @@ from tests.selenium.helpers import (
     _cadastrar_administrador,
     _cadastrar_dizimista,
     _clicar_elemento,
+    _clicar_submit,
     _criar_admin_logado,
     _email_unico,
     _linha_usuario,
@@ -23,6 +24,12 @@ from tests.selenium.helpers import (
 )
 
 pytestmark = pytest.mark.selenium
+
+
+def _preencher_campos_comuns(driver, nome: str, email: str | None, senha: str | None) -> None:
+    """Forward para o helper do pacote, mantendo o arquivo autocontido."""
+    from tests.selenium.helpers import _preencher_campos_comuns as helper
+    helper(driver, nome, email or "", senha or "")
 
 
 class TestCadastroUsuario:
@@ -46,7 +53,6 @@ class TestCadastroUsuario:
         driver.find_element(By.ID, "confirmar_senha").send_keys("outra_senha456")
         _selecionar_igreja(driver)
 
-        # Não aguarda redirecionamento: a view retorna 422 na mesma URL.
         _submeter_formulario(driver, forcar=True, esperar_redirecionamento=False)
         _aguardar_alerta_erro(driver)
 
@@ -58,7 +64,6 @@ class TestCadastroUsuario:
             driver, "Sem Igreja", _email_unico(), "senha_valida123"
         )
 
-        # Força o envio ignorando validação HTML5 para testar o backend
         _submeter_formulario(driver, forcar=True, esperar_redirecionamento=False)
 
         _aguardar_alerta_erro(driver)
@@ -67,6 +72,74 @@ class TestCadastroUsuario:
 
 
 class TestCadastroPorAdministrador:
+    async def test_admin_cria_dizimista_sem_email_sem_senha(self, driver):
+        """CASO 1: admin cadastra dizimista sem e-mail, sem senha e sem número de registro."""
+        await _criar_admin_logado(driver)
+
+        driver.get(f"{APP_BASE_URL}/usuarios/novo")
+        _aguardar_carregamento_pagina(driver)
+
+        driver.find_element(By.ID, "nome").send_keys("Dizimista Sem Email")
+        # Não preenche e-mail, senha, confirmar_senha nem numero_registro
+        _selecionar_igreja(driver)
+        _clicar_submit(driver)
+
+        WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Dizimista Sem Email")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Detalhes"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
+        assert "Dizimista Sem Email" in driver.page_source
+        assert "Número de registro" in driver.page_source
+        assert "—" in driver.page_source
+
+
+    async def test_admin_cria_dizimista_com_numero_registro(self, driver):
+        await _criar_admin_logado(driver)
+
+        driver.get(f"{APP_BASE_URL}/usuarios/novo")
+        _aguardar_carregamento_pagina(driver)
+
+        driver.find_element(By.ID, "nome").send_keys("Dizimista Com Registro")
+        driver.find_element(By.ID, "numero_registro").send_keys("1001")
+        _selecionar_igreja(driver)
+        _clicar_submit(driver)
+
+        WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Dizimista Com Registro")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Detalhes"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
+        assert "1001" in driver.page_source
+
+    async def test_numero_registro_duplicado_mostra_erro(self, driver):
+        await _criar_admin_logado(driver)
+
+        driver.get(f"{APP_BASE_URL}/usuarios/novo")
+        _aguardar_carregamento_pagina(driver)
+
+        driver.find_element(By.ID, "nome").send_keys("Primeiro Com Registro")
+        driver.find_element(By.ID, "numero_registro").send_keys("2002")
+        _selecionar_igreja(driver)
+        _clicar_submit(driver)
+        WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
+
+        driver.get(f"{APP_BASE_URL}/usuarios/novo")
+        _aguardar_carregamento_pagina(driver)
+
+        driver.find_element(By.ID, "nome").send_keys("Segundo Com Registro")
+        driver.find_element(By.ID, "numero_registro").send_keys("2002")
+        _selecionar_igreja(driver)
+        _submeter_formulario(driver, forcar=True, esperar_redirecionamento=False)
+
+        _aguardar_alerta_erro(driver)
+        alerta = driver.find_element(By.CSS_SELECTOR, ".alert-danger")
+        assert "número de registro" in alerta.text.lower()
+
     async def test_admin_cria_dizimista_ativo_sem_senha(self, driver):
         await _criar_admin_logado(driver)
 
@@ -77,8 +150,6 @@ class TestCadastroPorAdministrador:
         driver.find_element(By.ID, "nome").send_keys("Dizimista Sem Acesso")
         driver.find_element(By.ID, "email").send_keys(email)
         _selecionar_igreja(driver)
-        from tests.selenium.helpers import _clicar_submit
-
         _clicar_submit(driver)
 
         WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
@@ -91,6 +162,8 @@ class TestCadastroPorAdministrador:
         _cadastrar_administrador(driver, "Novo Admin", email, "senha_valida123")
 
         WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
         assert email in driver.page_source
 
     async def test_admin_cria_administrador_sem_paroquia_mostra_erro(self, driver):
@@ -103,10 +176,8 @@ class TestCadastroPorAdministrador:
         _preencher_campos_comuns(driver, "Admin Sem Paróquia", email, "senha_valida123")
         _selecionar_perfil(driver, "administrador")
 
-        # Aguarda o campo paróquia aparecer (JS)
         _aguardar_visivel(driver, By.ID, "campo-paroquia")
 
-        # Força o envio ignorando required do HTML5; não aguarda redirecionamento.
         _submeter_formulario(driver, forcar=True, esperar_redirecionamento=False)
         _aguardar_alerta_erro(driver)
 
@@ -165,7 +236,6 @@ class TestListaEDetalhesUsuario:
         linha = _linha_usuario(driver, email_dizimista)
         _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Detalhes"))
 
-        # Aguarda a navegação de fato acontecer
         WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
 
         WebDriverWait(driver, 8).until(
@@ -196,7 +266,6 @@ class TestEdicaoUsuario:
 
         WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
 
-        # Recarrega com paginação ampliada para garantir que o registro esteja visível
         driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
         WebDriverWait(driver, 8).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "table"))
@@ -224,7 +293,6 @@ class TestEdicaoUsuario:
 
         _aguardar_visivel(driver, By.ID, "campo-paroquia")
 
-        # Força o envio ignorando required do HTML5; não aguarda redirecionamento.
         _submeter_formulario(driver, forcar=True, esperar_redirecionamento=False)
         _aguardar_alerta_erro(driver)
 
@@ -245,7 +313,6 @@ class TestEdicaoUsuario:
 
         WebDriverWait(driver, 8).until(EC.url_contains("/editar"))
 
-        # Garante que a paróquia esteja selecionada após o carregamento JS
         _selecionar_paroquia(driver)
 
         _aguardar_visivel(driver, By.ID, "tambem_dizimista")
@@ -255,7 +322,6 @@ class TestEdicaoUsuario:
         _aguardar_visivel(driver, By.ID, "campos-dizimista")
         _selecionar_igreja(driver)
 
-        # Reforço: garante paróquia selecionada logo antes de submeter
         _selecionar_paroquia(driver)
 
         _submeter_formulario(driver)
@@ -307,15 +373,6 @@ class TestExclusaoUsuario:
 
         driver.find_element(By.ID, "email").send_keys(email_dizimista)
         driver.find_element(By.ID, "senha").send_keys("senha_valida123")
-        from tests.selenium.helpers import _clicar_submit
-
         _clicar_submit(driver)
 
         _aguardar_alerta_erro(driver)
-
-
-def _preencher_campos_comuns(driver, nome: str, email: str, senha: str | None) -> None:
-    """Forward para o helper do pacote, mantendo o arquivo autocontido."""
-    from tests.selenium.helpers import _preencher_campos_comuns as helper
-
-    helper(driver, nome, email, senha)

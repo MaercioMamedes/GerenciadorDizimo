@@ -19,6 +19,7 @@ from app.models.paroquia import Paroquia
 from app.models.perfil_dizimista import PerfilDizimista, StatusCadastro
 from app.models.usuario import PerfilUsuario, Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
+from app.services.perfil_dizimista_service import validar_numero_registro_unico
 from app.services.usuario_service import (
     atualizar_usuario,
     criar_usuario,
@@ -72,6 +73,19 @@ def _render_formulario(
     )
 
 
+def _parse_numero_registro(valor: str | None) -> tuple[int | None, str | None]:
+    """Converte o valor do formulário em int ou retorna erro."""
+    if not valor or not valor.strip():
+        return None, None
+    try:
+        numero = int(valor.strip())
+        if numero < 1:
+            return None, "Número de registro deve ser maior que zero."
+        return numero, None
+    except ValueError:
+        return None, "Número de registro deve ser um número inteiro positivo."
+
+
 @router.get("/novo")
 async def formulario_cadastro_usuario(
     request: Request,
@@ -105,6 +119,7 @@ async def cadastrar_usuario_via_formulario(
     ativo: bool = Form(default=False),
     tambem_dizimista: bool = Form(default=False),
     igreja_id: str | None = Form(default=None),
+    numero_registro: str | None = Form(default=None),
     endereco: str | None = Form(default=None),
     bairro: str | None = Form(default=None),
     cidade: str | None = Form(default=None),
@@ -157,6 +172,16 @@ async def cadastrar_usuario_via_formulario(
     if eh_dizimista and not igreja_id:
         erros.append("Selecione a igreja para o perfil de Dizimista.")
 
+    numero_registro_int, erro_numero = _parse_numero_registro(numero_registro)
+    if erro_numero:
+        erros.append(erro_numero)
+
+    if numero_registro_int and eh_dizimista:
+        try:
+            await validar_numero_registro_unico(db, numero_registro_int)
+        except Exception as exc:
+            erros.append(str(exc))
+
     dados: UsuarioCreate | None = None
     if not erros:
         try:
@@ -190,6 +215,7 @@ async def cadastrar_usuario_via_formulario(
             perfil_diz = PerfilDizimista(
                 usuario_id=usuario.id,
                 igreja_id=uuid.UUID(igreja_id),
+                numero_registro=numero_registro_int,
                 endereco=endereco or None,
                 bairro=bairro or None,
                 cidade=cidade or None,
@@ -207,6 +233,7 @@ async def cadastrar_usuario_via_formulario(
         await db.refresh(usuario)
 
     except Exception as exc:
+        await db.rollback()
         detail = getattr(exc, "detail", str(exc))
         return _render_formulario(
             request=request,
@@ -338,6 +365,7 @@ async def editar_usuario_via_formulario(
     ativo: bool = Form(default=False),
     tambem_dizimista: bool = Form(default=False),
     igreja_id: str | None = Form(default=None),
+    numero_registro: str | None = Form(default=None),
     endereco: str | None = Form(default=None),
     bairro: str | None = Form(default=None),
     cidade: str | None = Form(default=None),
@@ -375,6 +403,21 @@ async def editar_usuario_via_formulario(
     if eh_dizimista and not igreja_id:
         erros.append("Selecione a igreja para o perfil de Dizimista.")
 
+    numero_registro_int, erro_numero = _parse_numero_registro(numero_registro)
+    if erro_numero:
+        erros.append(erro_numero)
+
+    if numero_registro_int and eh_dizimista:
+        try:
+            perfil_dizimista_id = (
+                usuario.perfil_dizimista.id if usuario.perfil_dizimista else None
+            )
+            await validar_numero_registro_unico(
+                db, numero_registro_int, perfil_id=perfil_dizimista_id
+            )
+        except Exception as exc:
+            erros.append(str(exc))
+
     dados: UsuarioUpdate | None = None
     if not erros:
         try:
@@ -411,6 +454,7 @@ async def editar_usuario_via_formulario(
                     novo_perfil_dizimista = PerfilDizimista(
                         usuario_id=usuario.id,
                         igreja_id=igreja_uuid,
+                        numero_registro=numero_registro_int,
                         endereco=endereco or None,
                         bairro=bairro or None,
                         cidade=cidade or None,
@@ -420,6 +464,7 @@ async def editar_usuario_via_formulario(
             else:
                 if igreja_uuid:
                     usuario.perfil_dizimista.igreja_id = igreja_uuid
+                usuario.perfil_dizimista.numero_registro = numero_registro_int
                 usuario.perfil_dizimista.endereco = endereco or None
                 usuario.perfil_dizimista.bairro = bairro or None
                 usuario.perfil_dizimista.cidade = cidade or None
@@ -431,6 +476,7 @@ async def editar_usuario_via_formulario(
 
         await db.commit()
     except Exception as exc:
+        await db.rollback()
         detail = getattr(exc, "detail", str(exc))
         return _render_formulario(
             request=request,
