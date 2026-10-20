@@ -17,6 +17,7 @@ from tests.selenium.helpers import (
     _criar_admin_logado,
     _email_unico,
     _linha_usuario,
+    _login,
     _selecionar_igreja,
     _selecionar_paroquia,
     _selecionar_perfil,
@@ -69,6 +70,33 @@ class TestCadastroUsuario:
         _aguardar_alerta_erro(driver)
         alerta = driver.find_element(By.CSS_SELECTOR, ".alert-danger")
         assert "igreja" in alerta.text.lower()
+
+    # -----------------------------------------------------------------------
+    # Novos testes Selenium: campo e geração de número de registro
+    # -----------------------------------------------------------------------
+
+    async def test_autocadastro_nao_exibe_campo_numero_registro(self, driver):
+        """Campo número de registro não deve existir no autocadastro público."""
+        driver.get(f"{APP_BASE_URL}/usuarios/novo")
+        _aguardar_carregamento_pagina(driver)
+
+        assert len(driver.find_elements(By.ID, "numero_registro")) == 0
+
+    async def test_autocadastro_nao_gera_numero_registro(self, driver):
+        """Autocadastro válido deve criar dizimista sem número de registro."""
+        email = _email_unico()
+        _cadastrar_dizimista(driver, "Dizimista Sem Registro", email, "senha_valida123")
+
+        # Admin verifica o cadastro recém-criado
+        await _criar_admin_logado(driver)
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Dizimista Sem Registro")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Detalhes"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
+        assert "Número de registro" in driver.page_source
+        assert "—" in driver.page_source
 
 
 class TestCadastroPorAdministrador:
@@ -198,6 +226,20 @@ class TestCadastroPorAdministrador:
 
         WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
         assert email in driver.page_source
+
+    # -----------------------------------------------------------------------
+    # Novo teste Selenium: campo visível apenas para admin
+    # -----------------------------------------------------------------------
+
+    async def test_admin_ve_campo_numero_registro_no_formulario(self, driver):
+        """Administrador logado deve ver o campo número de registro no formulário."""
+        await _criar_admin_logado(driver)
+
+        driver.get(f"{APP_BASE_URL}/usuarios/novo")
+        _aguardar_carregamento_pagina(driver)
+
+        campo = driver.find_element(By.ID, "numero_registro")
+        assert campo.is_displayed()
 
 
 class TestListaEDetalhesUsuario:

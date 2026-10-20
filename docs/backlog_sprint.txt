@@ -3,14 +3,14 @@
 - ajustar timezone nas views
 - ✅ implementar atributo número de registro
 - criar páginas/endpoints dos cruds
-- garatir que possa haver cadastro de dizimista mesmo que tenha email cadastrado.
+- ✅ garatir que possa haver cadastro de dizimista mesmo que não tenha email cadastrado.
     *USUÁRIOS*
         - ✅ definir fluxos de criação de usuários
-        - criação de usuário
+        - ✅criação de usuário
         - ✅ quando for editar/criar um usuário dizimista deve-se informar à igreja/paróquia que ele pertence
-        - lista de usuário(somente para adm)
-        - detalhes de usuário(somente para adm ou o próprio usuário)
-        - exclusão de usuário(somente para adm)
+        - ✅ lista de usuário(somente para adm)
+        - ✅ detalhes de usuário(somente para adm ou o próprio usuário)
+        - ✅ exclusão de usuário(somente para adm)
         - implementar busca de usuário por: nome, numero de registro, e data de nascimento
         - implementar filtro por ativo, inativo, pendente de aprovação
 

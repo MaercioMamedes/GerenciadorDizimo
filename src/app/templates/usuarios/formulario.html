@@ -177,22 +177,25 @@
           <hr>
           <h6 class="mb-3 text-muted">Dados de Dizimista</h6>
 
-          <div class="mb-3">
-            <label for="numero_registro" class="form-label">
-              Número de registro <span class="text-muted">(opcional)</span>
-            </label>
-            <input
-              type="number"
-              class="form-control"
-              id="numero_registro"
-              name="numero_registro"
-              min="1"
-              step="1"
-              placeholder="Ex: 123"
-              value="{{ usuario.perfil_dizimista.numero_registro if usuario and usuario.perfil_dizimista else '' }}"
-            >
-            <div class="form-text">Deve ser único no sistema. Deixe em branco para não atribuir.</div>
-          </div>
+        {% if admin_cadastrando %}
+        <div class="mb-3">
+          <label for="numero_registro" class="form-label">
+            Número de registro <span class="text-muted">(opcional)</span>
+          </label>
+          <input
+            type="number"
+            class="form-control"
+            id="numero_registro"
+            name="numero_registro"
+            min="1"
+            step="1"
+            placeholder="Ex: 123"
+            value="{{ usuario.perfil_dizimista.numero_registro if usuario and usuario.perfil_dizimista else '' }}"
+          >
+          <div class="form-text">Deve ser único no sistema. Deixe em branco para não atribuir.</div>
+        </div>
+        {% endif %}
+
 
           <div class="mb-3">
             <label for="igreja_id" class="form-label">Igreja</label>

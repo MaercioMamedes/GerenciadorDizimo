@@ -4,6 +4,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.models.perfil_dizimista import PerfilDizimista
 from app.models.usuario import PerfilUsuario, Usuario
@@ -134,3 +135,43 @@ async def test_admin_cria_administrador_exige_email_senha_e_paroquia(
     assert "e-mail" in response.text.lower()
     assert "senha" in response.text.lower()
     assert "paroquia" in response.text.lower()
+
+async def test_autocadastro_ignora_numero_registro_enviado(
+    async_client: AsyncClient, db_session, igreja_factory
+):
+    """
+    Garante que, no autocadastro público (sem usuário admin logado),
+    mesmo se um numero_registro for enviado na requisição,
+    o valor salvo no perfil do dizimista seja None.
+    """
+    igreja = await igreja_factory(db_session)
+
+    response = await async_client.post(
+        "/usuarios/novo",
+        data={
+            "nome": "Dizimista Autocadastro",
+            "email": "auto@teste.com",
+            "senha": "senha_valida123",
+            "confirmar_senha": "senha_valida123",
+            "perfil": "dizimista",
+            "igreja_id": str(igreja.id),
+            "numero_registro": "9999",  # enviado propositalmente
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == status.HTTP_303_SEE_OTHER
+    assert response.headers["location"] == "/auth/login?cadastro_pendente=true"
+
+    result = await db_session.execute(
+        select(Usuario)
+        .where(Usuario.nome == "Dizimista Autocadastro")
+        .options(selectinload(Usuario.perfil_dizimista))
+    )
+    usuario = result.scalar_one()
+
+    assert usuario.email == "auto@teste.com"
+    assert usuario.perfil == PerfilUsuario.DIZIMISTA
+    assert usuario.ativo is False
+    assert usuario.perfil_dizimista is not None
+    assert usuario.perfil_dizimista.numero_registro is None

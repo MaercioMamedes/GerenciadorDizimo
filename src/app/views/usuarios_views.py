@@ -141,6 +141,7 @@ async def cadastrar_usuario_via_formulario(
         perfil = PerfilUsuario.DIZIMISTA.value
         ativo = False
         status_cadastro = StatusCadastro.PENDENTE.value
+        numero_registro = None
 
     try:
         perfil_enum = PerfilUsuario(perfil)

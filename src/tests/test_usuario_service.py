@@ -208,9 +208,11 @@ async def test_validar_numero_registro_unico_permite_quando_nao_existe(mock_sess
     mock_session.execute.assert_awaited_once()
 
 
-async def test_validar_numero_registro_unico_lanca_erro_quando_duplicado(mock_session):
+async def test_validar_numero_registro_unico_rejeita_duplicado(mock_session):
     perfil_existente = MagicMock()
-    _mock_execute_scalar(mock_session, perfil_existente)
+    resultado_fake = MagicMock()
+    resultado_fake.scalar_one_or_none.return_value = perfil_existente
+    mock_session.execute.return_value = resultado_fake
 
     with pytest.raises(ValueError, match="já está em uso"):
         await validar_numero_registro_unico(mock_session, 123)
