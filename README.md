@@ -9,6 +9,7 @@ Sistema web para gestão de arrecadação de dízimo em paróquias católicas, c
 - [Stack Tecnológica](#stack-tecnológica)
 - [Arquitetura](#arquitetura)
 - [Perfis de Usuário](#perfis-de-usuário)
+- [Fluxo de Criação e Gestão de Usuários](#fluxo-de-criação-e-gestão-de-usuários)
 - [Pré-requisitos](#pré-requisitos)
 - [Instalação e Execução](#instalação-e-execução)
 - [Variáveis de Ambiente](#variáveis-de-ambiente)
@@ -64,6 +65,79 @@ A auditoria de dados é implementada via **triggers no PostgreSQL**, que captura
 
 - **Administrador**: vinculado a uma paróquia, com acesso irrestrito aos dados dessa paróquia. Cadastra igrejas, valida e cadastra dizimistas, registra e corrige contribuições, gera relatórios e consulta logs de auditoria.
 - **Dizimista**: vinculado a exatamente uma igreja dentro da paróquia. Pode se autocadastrar (ficando pendente de validação), visualizar apenas as próprias contribuições e solicitar consulta/anonimização dos próprios dados pessoais.
+
+## Fluxo de Criação e Gestão de Usuários
+
+O sistema possui três formas de criação de usuário. A edição e exclusão são operações restritas ao perfil **administrador**.
+
+### 1. Criação do primeiro administrador via CLI
+
+Para bootstrap inicial do sistema, o primeiro usuário administrador é criado por linha de comando, sem depender de outro usuário logado.
+
+```bash
+python -m app.commands.criar_admin
+```
+
+O comando solicita interativamente nome, e-mail, senha e confirmação. O administrador criado fica automaticamente ativo e vinculado a uma paróquia (informada no fluxo do comando, quando aplicável).
+
+### 2. Autocadastro de Dizimista
+
+Qualquer pessoa pode acessar a tela de cadastro público (`/usuarios/novo`) para solicitar participação como dizimista.
+
+| Campo | Obrigatoriedade | Observação |
+|---|---|---|
+| Nome | Obrigatório | — |
+| E-mail | Obrigatório | Será usado para login. |
+| Senha | Obrigatória | Mínimo de segurança definido na validação. |
+| Confirmar senha | Obrigatória | Deve ser idêntica à senha. |
+| Igreja | Obrigatória | Dizimista deve ser vinculado a uma única igreja. |
+| Telefone | Facultativo | — |
+| Data de nascimento | Facultativo | — |
+| Número de registro | **Não disponível** | Campo reservado à criação por administrador. Se enviado manualmente na requisição, o valor é ignorado. |
+
+Ao concluir, o cadastro é criado com:
+- Perfil: **dizimista**
+- Status: **pendente de validação**
+- Acesso: **inativo** até aprovação de um administrador
+
+### 3. Criação de Usuários por Administrador
+
+Administradores autenticados podem cadastrar novos usuários em `/usuarios/novo`, escolhendo o perfil e preenchendo os dados conforme a tabela abaixo.
+
+#### 3.1 Cadastro de Dizimista pelo Administrador
+
+| Campo | Obrigatoriedade | Observação |
+|---|---|---|
+| Nome | Obrigatório | — |
+| Igreja | Obrigatória | Vínculo obrigatório para perfil dizimista. |
+| E-mail | Facultativo | Se omitido, o dizimista não poderá fazer login sozinho. |
+| Senha | Facultativa | Obrigatória apenas se e-mail for informado. |
+| Confirmar senha | Facultativa | Obrigatória apenas se senha for informada. |
+| Telefone | Facultativo | — |
+| Data de nascimento | Facultativo | — |
+| Endereço / Bairro / Cidade | Facultativos | Dados complementares do perfil. |
+| Número de registro | Facultativo | Deve ser único no sistema. Deixe em branco para não atribuir. |
+| Ativo | Facultativo | Define se o cadastro já nasce aprovado. Padrão: inativo. |
+
+#### 3.2 Cadastro de Administrador pelo Administrador
+
+| Campo | Obrigatoriedade | Observação |
+|---|---|---|
+| Nome | Obrigatório | — |
+| E-mail | Obrigatório | Será usado para login. |
+| Senha | Obrigatória | — |
+| Confirmar senha | Obrigatória | Deve ser idêntica à senha. |
+| Paróquia | Obrigatória | Administrador deve estar vinculado a uma paróquia. |
+| Telefone | Facultativo | — |
+| Data de nascimento | Facultativo | — |
+| Também é dizimista | Facultativo | Quando marcado, exibe os campos de dizimista e exige uma igreja. |
+
+### 4. Edição e Exclusão
+
+- **Edição**: disponível apenas para administradores, através da rota `/usuarios/{id}/editar`. Permite alterar nome, e-mail, telefone, data de nascimento, perfil, paróquia, igreja, status de ativação e número de registro, respeitando as mesmas regras de obrigatoriedade do cadastro.
+- **Exclusão**: disponível apenas para administradores, através da tela de detalhes do usuário (`/usuarios/{id}`). O administrador excluído permanece autenticado na sessão atual, exceto se tentar excluir a si mesmo (cenário a ser tratado conforme política da aplicação).
+
+Todas as operações de escrita (criação, edição, exclusão) geram log de auditoria automaticamente via trigger no banco de dados.
 
 ## Pré-requisitos
 
