@@ -54,7 +54,7 @@
             name="email"
             maxlength="150"
             placeholder="exemplo@email.com"
-            value="{{ usuario.email if usuario else '' }}"
+            value="{{ (usuario.email or '') if usuario else '' }}"
             {{ "required" if not admin_cadastrando else "" }}
           >
         </div>
@@ -108,7 +108,7 @@
             name="telefone"
             maxlength="20"
             placeholder="(82) 99999-9999"
-            value="{{ usuario.telefone if usuario else '' }}"
+            value="{{ (usuario.telefone or '') if usuario else '' }}"
           >
         </div>
 
@@ -119,7 +119,7 @@
             class="form-control"
             id="data_nascimento"
             name="data_nascimento"
-            value="{{ usuario.data_nascimento if usuario else '' }}"
+            value="{{ (usuario.data_nascimento or '') if usuario else '' }}"
           >
         </div>
 

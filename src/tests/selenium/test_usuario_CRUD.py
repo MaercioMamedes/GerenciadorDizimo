@@ -1,5 +1,9 @@
 """Testes E2E de CRUD e gestão de usuários."""
 
+import asyncio
+import re
+from datetime import datetime
+
 import pytest
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -31,6 +35,20 @@ def _preencher_campos_comuns(driver, nome: str, email: str | None, senha: str | 
     """Forward para o helper do pacote, mantendo o arquivo autocontido."""
     from tests.selenium.helpers import _preencher_campos_comuns as helper
     helper(driver, nome, email or "", senha or "")
+
+
+def _extrair_data_hora(driver, rotulo: str) -> str:
+    """Extrai o valor renderizado ao lado de um rótulo na página de detalhes."""
+    elemento = driver.find_element(
+        By.XPATH,
+        f"//dt[contains(text(), '{rotulo}')]/following-sibling::dd[1]",
+    )
+    return elemento.text.strip()
+
+
+def _formato_data_hora_valido(valor: str) -> bool:
+    """Valida formato 'dd/mm/aaaa hh:mm' esperado no timezone local."""
+    return bool(re.fullmatch(r"\d{2}/\d{2}/\d{4} \d{2}:\d{2}", valor))
 
 
 class TestCadastroUsuario:
@@ -379,6 +397,137 @@ class TestEdicaoUsuario:
             EC.text_to_be_present_in_element((By.TAG_NAME, "body"), "Perfil de Dizimista")
         )
         assert "Igreja Matriz Selenium" in driver.page_source
+
+
+class TestTimestampsUsuario:
+    async def test_timestamps_aparecem_apos_criacao(self, driver):
+        """Após criar um usuário, os metadados de tempo devem ser exibidos no template."""
+        await _criar_admin_logado(driver)
+
+        email = _email_unico()
+        _cadastrar_dizimista(driver, "Timestamp Criacao", email, "senha_valida123")
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Timestamp Criacao")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Detalhes"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
+
+        criado_em = _extrair_data_hora(driver, "Criado em")
+        atualizado_em = _extrair_data_hora(driver, "Atualizado em")
+
+        assert criado_em != "—"
+        assert atualizado_em != "—"
+        assert _formato_data_hora_valido(criado_em)
+        assert _formato_data_hora_valido(atualizado_em)
+
+    async def test_atualizado_em_muda_apos_edicao(self, driver):
+        """Após editar um usuário, atualizado_em deve mudar no template; criado_em não."""
+        await _criar_admin_logado(driver)
+
+        email = _email_unico()
+        _cadastrar_dizimista(driver, "Timestamp Edicao", email, "senha_valida123")
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Timestamp Edicao")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Detalhes"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
+
+        criado_em_antes = _extrair_data_hora(driver, "Criado em")
+        atualizado_em_antes = _extrair_data_hora(driver, "Atualizado em")
+
+        # Aguarda o próximo minuto para que o template exiba valor diferente
+        agora = datetime.now()
+        segundos_ate_proximo_minuto = 60 - agora.second
+        await asyncio.sleep(segundos_ate_proximo_minuto + 1)
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Timestamp Edicao")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Editar"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/editar"))
+        _aguardar_visivel(driver, By.ID, "nome")
+
+        campo_nome = driver.find_element(By.ID, "nome")
+        campo_nome.clear()
+        campo_nome.send_keys("Timestamp Edicao Atualizado")
+
+        _submeter_formulario(driver)
+
+        WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Timestamp Edicao Atualizado")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Detalhes"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
+
+        criado_em_depois = _extrair_data_hora(driver, "Criado em")
+        atualizado_em_depois = _extrair_data_hora(driver, "Atualizado em")
+
+        assert criado_em_antes == criado_em_depois
+        assert atualizado_em_antes != atualizado_em_depois
+        assert _formato_data_hora_valido(atualizado_em_depois)
+
+    async def test_atualizado_em_muda_apos_edicao_apenas_perfil_dizimista(self, driver):
+        """Alterar apenas um campo do PerfilDizimista deve atualizar o timestamp de Usuário."""
+        await _criar_admin_logado(driver)
+
+        driver.get(f"{APP_BASE_URL}/usuarios/novo")
+        _aguardar_carregamento_pagina(driver)
+
+        driver.find_element(By.ID, "nome").send_keys("Timestamp Perfil Dizimista")
+        driver.find_element(By.ID, "numero_registro").send_keys("3003")
+        _selecionar_igreja(driver)
+        _clicar_submit(driver)
+
+        WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Timestamp Perfil Dizimista")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Detalhes"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
+
+        criado_em_antes = _extrair_data_hora(driver, "Criado em")
+        atualizado_em_antes = _extrair_data_hora(driver, "Atualizado em")
+
+        assert "3003" in driver.page_source
+
+        # Aguarda o próximo minuto, já que o template exibe hh:mm sem segundos
+        agora = datetime.now()
+        segundos_ate_proximo_minuto = 60 - agora.second
+        await asyncio.sleep(segundos_ate_proximo_minuto + 1)
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Timestamp Perfil Dizimista")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Editar"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/editar"))
+        _aguardar_visivel(driver, By.ID, "numero_registro")
+
+        campo_numero = driver.find_element(By.ID, "numero_registro")
+        campo_numero.clear()
+        campo_numero.send_keys("3004")
+
+        _submeter_formulario(driver)
+
+        WebDriverWait(driver, 8).until(EC.url_to_be(f"{APP_BASE_URL}/usuarios"))
+
+        driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
+        linha = _linha_usuario(driver, "Timestamp Perfil Dizimista")
+        _clicar_elemento(driver, linha.find_element(By.LINK_TEXT, "Detalhes"))
+
+        WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
+
+        criado_em_depois = _extrair_data_hora(driver, "Criado em")
+        atualizado_em_depois = _extrair_data_hora(driver, "Atualizado em")
+
+        assert "3004" in driver.page_source
+        assert criado_em_antes == criado_em_depois
+        assert atualizado_em_antes != atualizado_em_depois
+        assert _formato_data_hora_valido(atualizado_em_depois)
 
 
 class TestExclusaoUsuario:

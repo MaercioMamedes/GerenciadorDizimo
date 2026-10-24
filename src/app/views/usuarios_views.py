@@ -5,6 +5,7 @@ web (UC03/UC04/UC05).
 
 import math
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -12,6 +13,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.v1 import usuario
 from app.core.templates import templates
 from app.db.session import get_db
 from app.models.igreja import Igreja
@@ -84,6 +86,19 @@ def _parse_numero_registro(valor: str | None) -> tuple[int | None, str | None]:
         return numero, None
     except ValueError:
         return None, "Número de registro deve ser um número inteiro positivo."
+
+
+def _definir_atributo(obj, nome: str, novo_valor) -> bool:
+    """Atribui `novo_valor` ao atributo `nome` se for diferente do atual.
+
+    Retorna True quando houve mudança real, permitindo rastrear se a
+    entidade foi modificada.
+    """
+    anterior = getattr(obj, nome)
+    if anterior != novo_valor:
+        setattr(obj, nome, novo_valor)
+        return True
+    return False
 
 
 @router.get("/novo")
@@ -448,6 +463,7 @@ async def editar_usuario_via_formulario(
     try:
         await atualizar_usuario(db, usuario, dados)
 
+        perfil_alterado = False
         if eh_dizimista:
             igreja_uuid = uuid.UUID(igreja_id) if igreja_id else None
             if usuario.perfil_dizimista is None:
@@ -462,6 +478,7 @@ async def editar_usuario_via_formulario(
                         status_cadastro=status_cadastro or StatusCadastro.PENDENTE,
                     )
                     db.add(novo_perfil_dizimista)
+                    perfil_alterado = True
             else:
                 if igreja_uuid:
                     usuario.perfil_dizimista.igreja_id = igreja_uuid
@@ -471,9 +488,14 @@ async def editar_usuario_via_formulario(
                 usuario.perfil_dizimista.cidade = cidade or None
                 if status_cadastro:
                     usuario.perfil_dizimista.status_cadastro = status_cadastro
+                perfil_alterado = True
         else:
             if usuario.perfil_dizimista is not None:
                 await db.delete(usuario.perfil_dizimista)
+                perfil_alterado = True
+
+        if perfil_alterado:
+            usuario.atualizado_em = datetime.now(timezone.utc)
 
         await db.commit()
     except Exception as exc:

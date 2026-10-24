@@ -30,6 +30,15 @@ selenium-down:
 
 test: test-unit test-selenium
 
+test-log:
+	docker compose logs -f app > docs/console_log.txt 2>&1 & \
+	LOG_PID=$$!; \
+	$(MAKE) test 2>&1 | tee docs/console_tests_log.txt; \
+	EXIT_CODE=$${PIPESTATUS[0]}; \
+	sleep 2; \
+	kill $$LOG_PID 2>/dev/null || true; \
+	exit $$EXIT_CODE
+
 logs:
 	docker compose logs -f app
 
@@ -42,7 +51,7 @@ test-unit-log:
 	kill $$LOG_PID 2>/dev/null || true; \
 	exit $$EXIT_CODE
 
-test-log:
+test-selenium-log:
 	docker compose logs -f app > docs/console_log.txt 2>&1 & \
 	LOG_PID=$$!; \
 	$(MAKE) test-selenium 2>&1 | tee docs/console_tests_log.txt; \

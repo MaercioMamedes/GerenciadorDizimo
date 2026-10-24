@@ -36,7 +36,7 @@
 
         <dt class="col-sm-4">Data de nascimento</dt>
         <dd class="col-sm-8">
-          {{ usuario.data_nascimento.strftime("%d/%m/%Y") if usuario.data_nascimento else "—" }}
+          {{ usuario.data_nascimento | format_date if usuario.data_nascimento else "—" }}
         </dd>
       </dl>
     </div>
@@ -118,10 +118,10 @@
     <div class="card-body">
       <dl class="row mb-0">
         <dt class="col-sm-4">Criado em</dt>
-        <dd class="col-sm-8">{{ usuario.criado_em.strftime("%d/%m/%Y %H:%M") if usuario.criado_em else "—" }}</dd>
+        <dd class="col-sm-8">{{ usuario.criado_em | format_dt }}</dd>
 
         <dt class="col-sm-4">Atualizado em</dt>
-        <dd class="col-sm-8">{{ usuario.atualizado_em.strftime("%d/%m/%Y %H:%M") if usuario.atualizado_em else "—" }}</dd>
+        <dd class="col-sm-8">{{ usuario.atualizado_em | format_dt }}</dd>
       </dl>
     </div>
   </div>
