@@ -113,7 +113,7 @@ async def test_admin_cria_dizimista_com_numero_registro_duplicado(
         follow_redirects=False,
     )
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert "número de registro" in response.text.lower()
     assert "já está em uso por outro dizimista" in response.text.lower()
 
@@ -131,7 +131,7 @@ async def test_admin_cria_administrador_exige_email_senha_e_paroquia(
         follow_redirects=False,
     )
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert "e-mail" in response.text.lower()
     assert "senha" in response.text.lower()
     assert "paroquia" in response.text.lower()

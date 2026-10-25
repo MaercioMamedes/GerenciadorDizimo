@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.controllers.deps import require_admin_view
 from app.db.session import get_db
 from app.services import paroquia_service
-from app.views.deps import require_admin_view
 
 router = APIRouter(prefix="/paroquias", tags=["Views - Paróquias"])
 

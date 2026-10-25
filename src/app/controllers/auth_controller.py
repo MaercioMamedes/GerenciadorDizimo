@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Form, Query, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.controllers.deps import NOME_COOKIE_TOKEN, get_usuario_atual_opcional
 from app.core.templates import templates
 from app.db.session import get_db
 from app.services.auth_service import (
@@ -9,7 +10,6 @@ from app.services.auth_service import (
     gerar_token_para_usuario,
     registrar_logout,
 )
-from app.views.deps import NOME_COOKIE_TOKEN, get_usuario_atual_opcional
 
 router = APIRouter(prefix="/auth", tags=["Views - Autenticação"])
 

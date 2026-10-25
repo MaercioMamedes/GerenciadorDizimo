@@ -4,11 +4,13 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.auth import router as auth_api_router
 from app.api.v1.paroquia import router as paroquia_api_router
 from app.api.v1.usuario import router as usuario_api_router
+from app.controllers.auth_controller import router as auth_views_router
+from app.controllers.deps import get_usuario_atual_opcional
+from app.controllers.paroquia.paroquias_controller import (
+    router as paroquia_views_router,
+)
+from app.controllers.usuarios.router import router as usuarios_controller_router
 from app.core.templates import templates
-from app.views.auth_views import router as auth_views_router
-from app.views.deps import get_usuario_atual_opcional
-from app.views.paroquias_views import router as paroquia_views_router
-from app.views.usuarios_views import router as usuario_views_router
 
 app = FastAPI(title="Gerenciador Dízimo")
 
@@ -16,11 +18,10 @@ app.mount("/static", StaticFiles(directory="src/app/static"), name="static")
 
 # Views (SSR, cookie)
 app.include_router(auth_views_router)
-app.include_router(usuario_views_router)
+app.include_router(usuarios_controller_router)
 app.include_router(paroquia_views_router)
 
-
-# API (JSON, Bearer) — manter com outro prefixo se necessário para não colidir
+# API (JSON)
 app.include_router(auth_api_router)
 app.include_router(usuario_api_router)
 app.include_router(paroquia_api_router)
