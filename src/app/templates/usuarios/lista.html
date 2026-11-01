@@ -74,7 +74,7 @@
 
 <div class="card">
   <div class="card-body p-0">
-    <table class="table table-striped mb-0">
+    <table class="table table-striped mb-0" id="tabela-usuarios">
       <thead>
         <tr>
           <th>Nome</th>
@@ -98,10 +98,10 @@
             {% endif %}
           </td>
           <td>
-            {% if usuario.perfil.value == "administrador" and usuario.perfil_dizimista != None %}
+            {% if usuario.perfil.value.lower() == "administrador" and usuario.perfil_dizimista != None %}
               <span class="badge bg-primary">Administrador</span>
               <span class="badge bg-secondary">Dizimista</span>
-            {% elif usuario.perfil.value == "administrador" %}
+            {% elif usuario.perfil.value.lower() == "administrador" %}
               <span class="badge bg-primary">Administrador</span>
             {% else %}
               <span class="badge bg-secondary">Dizimista</span>
@@ -129,33 +129,23 @@
   </div>
 </div>
 
+{% set query_paginacao = "tamanho_pagina=" ~ tamanho_pagina ~ "&perfil=" ~ perfil_filtro ~ "&ativo=" ~ (ativo_filtro|lower if ativo_filtro is not none else '') ~ "&status_cadastro=" ~ status_cadastro_filtro ~ "&busca=" ~ busca_filtro ~ "&numero_registro=" ~ numero_registro_filtro ~ "&data_nascimento=" ~ data_nascimento_filtro %}
+
 {% if total_paginas > 1 %}
 <nav class="mt-4" aria-label="Paginação de usuários">
   <ul class="pagination justify-content-center">
     <li class="page-item {{ 'disabled' if pagina <= 1 else '' }}">
-      <a class="page-link"
-         href="{{ url_for('listar_usuarios_view') }}?pagina={{ pagina - 1 }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}&ativo={{ ativo_filtro|lower if ativo_filtro is not none else '' }}
-&status_cadastro={{ status_cadastro_filtro }}&busca={{ busca_filtro }}&numero_registro={{ numero_registro_filtro }}&data_nascimento={{ data_nascimento_filtro }}">
-        Anterior
-      </a>
+      <a class="page-link" href="{{ url_for('listar_usuarios_view') }}?pagina={{ pagina - 1 }}&{{ query_paginacao }}">Anterior</a>
     </li>
 
     {% for p in range(1, total_paginas + 1) %}
       <li class="page-item {{ 'active' if p == pagina else '' }}">
-        <a class="page-link"
-           href="{{ url_for('listar_usuarios_view') }}?pagina={{ p }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}&ativo={{ ativo_filtro|lower if ativo_filtro is not none else '' }}
-&status_cadastro={{ status_cadastro_filtro }}&busca={{ busca_filtro }}&numero_registro={{ numero_registro_filtro }}&data_nascimento={{ data_nascimento_filtro }}">
-          {{ p }}
-        </a>
+        <a class="page-link" href="{{ url_for('listar_usuarios_view') }}?pagina={{ p }}&{{ query_paginacao }}">{{ p }}</a>
       </li>
     {% endfor %}
 
     <li class="page-item {{ 'disabled' if pagina >= total_paginas else '' }}">
-      <a class="page-link"
-         href="{{ url_for('listar_usuarios_view') }}?pagina={{ pagina + 1 }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}&ativo={{ ativo_filtro|lower if ativo_filtro is not none else '' }}
-&status_cadastro={{ status_cadastro_filtro }}&busca={{ busca_filtro }}&numero_registro={{ numero_registro_filtro }}&data_nascimento={{ data_nascimento_filtro }}">
-        Próxima
-      </a>
+      <a class="page-link" href="{{ url_for('listar_usuarios_view') }}?pagina={{ pagina + 1 }}&{{ query_paginacao }}">Próxima</a>
     </li>
   </ul>
 </nav>

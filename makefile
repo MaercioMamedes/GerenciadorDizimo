@@ -18,6 +18,10 @@ test-file:
 test-selenium:
 	docker compose -f docker-compose.yml -f docker-compose.selenium.yml --profile dev up -d
 	docker compose -f docker-compose.yml -f docker-compose.selenium.yml up -d --force-recreate app selenium
+	# Aguarda app ficar saudável (ajuste o tempo/healthcheck conforme necessário)
+	@until docker compose -f docker-compose.yml -f docker-compose.selenium.yml exec app python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"; do \
+		echo "Aguardando app..."; sleep 2; \
+	done
 	docker compose -f docker-compose.yml -f docker-compose.selenium.yml exec app pytest -m selenium -v
 	docker compose up -d --force-recreate app
 

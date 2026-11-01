@@ -67,18 +67,21 @@ async def listar_usuarios_view(
     ativo_bool = _converter_ativo(ativo)
     data_nasc = _converter_data(data_nascimento)
 
+    # Os templates enviam os valores em minúsculo (ex: "dizimista"), mas os
+    # enums do SQLAlchemy costumam usar nomes em maiúsculo. Utilizamos
+    # acesso por chave com .upper() para garantir a compatibilidade.
     perfil_enum: PerfilUsuario | None = None
     if perfil_limpo:
         try:
-            perfil_enum = PerfilUsuario(perfil_limpo)
-        except ValueError:
+            perfil_enum = PerfilUsuario[perfil_limpo.upper()]
+        except KeyError:
             perfil_enum = None
 
     status_enum: StatusCadastro | None = None
     if status_cadastro_limpo:
         try:
-            status_enum = StatusCadastro(status_cadastro_limpo)
-        except ValueError:
+            status_enum = StatusCadastro[status_cadastro_limpo.upper()]
+        except KeyError:
             status_enum = None
 
     # numero_registro precisa ser int para comparar com a coluna do banco

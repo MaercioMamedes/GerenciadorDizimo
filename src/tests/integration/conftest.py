@@ -21,7 +21,7 @@ from tests.integration import helpers
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def _garantir_banco_de_teste_migrado():
+async def _garantir_banco_de_teste_migrado(engine):
     await _ensure_test_database_exists()
 
     sync_test_url = TEST_DATABASE_URL.replace("+asyncpg", "")
@@ -121,9 +121,10 @@ def db(db_session):
     return db_session
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def paroquia_criada(db):
-    paroquia = Paroquia(cnpj="12.345.678/0001-90")
+    cnpj_unico = f"{uuid.uuid4().hex[:14]}"  # ou None
+    paroquia = Paroquia(cnpj=cnpj_unico)
     db.add(paroquia)
     await db.flush()
     await db.refresh(paroquia)
@@ -145,22 +146,43 @@ async def igreja_criada(db, paroquia_criada):
 
 
 @pytest_asyncio.fixture
-async def admin_criado(db, paroquia_criada):
+async def admin_criado():
     from app.core.security import hash_senha
 
     senha = "senha_valida123"
-    admin = Usuario(
-        nome="Admin Teste",
-        email=f"admin-{uuid.uuid4().hex[:8]}@teste.local",
-        senha_hash=hash_senha(senha),
-        perfil=PerfilUsuario.ADMINISTRADOR,
-        ativo=True,
-        paroquia_id=paroquia_criada.id,
-    )
-    db.add(admin)
-    await db.flush()
-    await db.refresh(admin)
-    return {"email": admin.email, "senha": senha, "obj": admin}
+    async with helpers._async_session_maker() as session:
+        paroquia = Paroquia(cnpj=f"{uuid.uuid4().hex[:14]}")
+        session.add(paroquia)
+        await session.flush()
+
+        igreja = Igreja(
+            nome="Igreja Matriz Teste",
+            endereco="Rua dos Testes, 1",
+            is_matriz=True,
+            paroquia_id=paroquia.id,
+        )
+        session.add(igreja)
+        await session.flush()
+
+        admin = Usuario(
+            nome="Admin Teste",
+            email=f"admin-{uuid.uuid4().hex[:8]}@teste.local",
+            senha_hash=hash_senha(senha),
+            perfil=PerfilUsuario.ADMINISTRADOR,
+            ativo=True,
+            paroquia_id=paroquia.id,
+        )
+        session.add(admin)
+        await session.commit()
+        await session.refresh(admin)
+        return {
+            "email": admin.email,
+            "senha": senha,
+            "obj": admin,
+            "paroquia_id": str(paroquia.id),
+            "igreja_id": str(igreja.id),
+        }
+
 
 
 @pytest.fixture

@@ -3,16 +3,24 @@
 Cobrem a interação com o formulário de filtros, paginação e botão Limpar.
 """
 
+import uuid
+
 import pytest
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
+from sqlalchemy import text
 
-from app.models.perfil_dizimista import StatusCadastro
-from app.models.usuario import PerfilUsuario
+from app.core.security import hash_senha
+from app.models.perfil_dizimista import PerfilDizimista, StatusCadastro
+from app.models.usuario import PerfilUsuario, Usuario
 
-from .helpers import fazer_login, preencher_campo
+from .helpers import (
+    _async_session_maker,
+    fazer_login,
+    preencher_campo,
+)
 
 # --------------------------------------------------------------------------- #
 # URLs e seletores
@@ -21,19 +29,35 @@ URL_LISTA_USUARIOS = "/usuarios"
 
 
 def _abrir_lista(driver: WebDriver, base_url: str) -> None:
-    driver.get(f"{base_url}{URL_LISTA_USUARIOS}")
+    """Abre a listagem com páginação ampla para evitar que resultados esperados
+    fiquem fora da primeira página quando o banco contém dados residuais."""
+    driver.get(f"{base_url}{URL_LISTA_USUARIOS}?tamanho_pagina=100")
     WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located((By.TAG_NAME, "table"))
+        EC.presence_of_element_located((By.ID, "tabela-usuarios"))
     )
 
 
 def _contar_linhas_tabela(driver: WebDriver) -> int:
-    return len(driver.find_elements(By.CSS_SELECTOR, "table tbody tr"))
+    return len(driver.find_elements(By.CSS_SELECTOR, "#tabela-usuarios tbody tr"))
 
 
 def _obter_texto_linhas(driver: WebDriver) -> list[str]:
-    linhas = driver.find_elements(By.CSS_SELECTOR, "table tbody tr td:first-child")
+    # Re-localiza as células a cada chamada para evitar stale elements
+    # quando a tabela é recarregada via submit/Limpar.
+    linhas = driver.find_elements(
+        By.CSS_SELECTOR, "#tabela-usuarios tbody tr td:first-child"
+    )
     return [c.text for c in linhas]
+
+
+def _obter_nomes_apos_carregamento(driver: WebDriver, texto_esperado: str) -> list[str]:
+    """Aguarda um texto na tabela e retorna os nomes visíveis."""
+    WebDriverWait(driver, 5).until(
+        EC.text_to_be_present_in_element(
+            (By.ID, "tabela-usuarios"), texto_esperado
+        )
+    )
+    return _obter_texto_linhas(driver)
 
 
 def _selecionar_opcao(driver: WebDriver, nome: str, valor: str) -> None:
@@ -45,49 +69,86 @@ def _selecionar_opcao(driver: WebDriver, nome: str, valor: str) -> None:
 # Fixtures
 # --------------------------------------------------------------------------- #
 @pytest.fixture
-def admin_autenticado(driver: WebDriver, base_url: str, admin_criado):
+def admin_autenticado(driver, base_url, admin_criado):
     """Realiza login como administrador e retorna os dados do usuário."""
-    fazer_login(
-        driver, base_url, email=admin_criado["email"], senha=admin_criado["senha"]
-    )
+    fazer_login(driver, base_url, email=admin_criado["email"], senha=admin_criado["senha"])
     return admin_criado
 
 
 @pytest.fixture
-async def usuarios_variados(db, paroquia_criada, igreja_criada):
+async def usuarios_variados(admin_criado):
     """Cria usuários diversos para validar os filtros na UI.
 
-    Esta fixture depende das fixtures de banco existentes no projeto.
+    Limpa previamente usuários não-admin deixados por testes anteriores,
+    garantindo que os filtros produzam resultados determinísticos.
     """
-    from app.models.perfil_dizimista import PerfilDizimista
-    from app.models.usuario import Usuario
+    admin_id = admin_criado["obj"].id
 
-    admin = Usuario(
-        nome="Selenium Admin",
-        email="selenium.admin@example.com",
-        perfil=PerfilUsuario.administrador,
-        ativo=True,
-        paroquia_id=paroquia_criada.id,
-    )
+    async with _async_session_maker() as session:
+        # Remove usuários criados por testes anteriores, preservando o admin
+        # que será usado para autenticação nos testes deste módulo.
+        await session.execute(
+            text("DELETE FROM perfil_dizimista WHERE usuario_id != :admin_id"),
+            {"admin_id": admin_id},
+        )
+        await session.execute(
+            text("DELETE FROM usuario WHERE id != :admin_id"),
+            {"admin_id": admin_id},
+        )
+        await session.commit()
 
-    dizimista_ativo = Usuario(
-        nome="Selenium Dizimista Ativo",
-        email="selenium.dizimista@example.com",
-        perfil=PerfilUsuario.dizimista,
-        ativo=True,
-        paroquia_id=paroquia_criada.id,
-    )
-    perfil = PerfilDizimista(
-        usuario=dizimista_ativo,
-        numero_registro=7777,
-        status_cadastro=StatusCadastro.aprovado,
-        igreja_id=igreja_criada.id,
-    )
+    sufixo = uuid.uuid4().hex[:8]
+    email_admin = f"selenium.admin.{sufixo}@example.com"
+    email_dizimista = f"selenium.dizimista.{sufixo}@example.com"
+    numero_registro = int(sufixo, 16) % 1_000_000_000
 
-    db.add_all([admin, dizimista_ativo, perfil])
-    await db.commit()
+    async with _async_session_maker() as session:
+        admin = Usuario(
+            nome="Selenium Admin",
+            email=email_admin,
+            perfil=PerfilUsuario.ADMINISTRADOR,
+            senha_hash=hash_senha("senha_qualquer"),
+            ativo=True,
+            paroquia_id=admin_criado["paroquia_id"],
+        )
 
-    return {"admin": admin, "dizimista": dizimista_ativo}
+        dizimista_ativo = Usuario(
+            nome="Selenium Dizimista Ativo",
+            email=email_dizimista,
+            perfil=PerfilUsuario.DIZIMISTA,
+            senha_hash=hash_senha("senha_qualquer"),
+            ativo=True,
+            paroquia_id=admin_criado["paroquia_id"],
+        )
+        perfil = PerfilDizimista(
+            usuario=dizimista_ativo,
+            numero_registro=numero_registro,
+            status_cadastro=StatusCadastro.APROVADO,
+            igreja_id=admin_criado["igreja_id"],
+        )
+
+        session.add_all([admin, dizimista_ativo, perfil])
+        await session.commit()
+
+        ids_criados = [admin.id, dizimista_ativo.id]
+
+    yield {
+        "admin": admin,
+        "dizimista": dizimista_ativo,
+        "numero_registro": numero_registro,
+    }
+
+    # Teardown: remove os usuários criados
+    async with _async_session_maker() as session:
+        await session.execute(
+            text("DELETE FROM perfil_dizimista WHERE usuario_id = ANY(:ids)"),
+            {"ids": ids_criados},
+        )
+        await session.execute(
+            text("DELETE FROM usuario WHERE id = ANY(:ids)"),
+            {"ids": ids_criados},
+        )
+        await session.commit()
 
 
 # --------------------------------------------------------------------------- #
@@ -102,13 +163,7 @@ def test_filtro_por_nome_exibe_apenas_resultado_correspondente(
     preencher_campo(driver, By.NAME, "busca", "Selenium Dizimista")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
-    WebDriverWait(driver, 5).until(
-        EC.text_to_be_present_in_element(
-            (By.CSS_SELECTOR, "table tbody"), "Selenium Dizimista Ativo"
-        )
-    )
-
-    nomes = _obter_texto_linhas(driver)
+    nomes = _obter_nomes_apos_carregamento(driver, "Selenium Dizimista Ativo")
     assert nomes == ["Selenium Dizimista Ativo"]
 
 
@@ -123,7 +178,7 @@ def test_filtro_por_nome_inexistente_exibe_mensagem_vazia(
 
     WebDriverWait(driver, 5).until(
         EC.text_to_be_present_in_element(
-            (By.CSS_SELECTOR, "table tbody"), "Nenhum usuário encontrado"
+            (By.ID, "tabela-usuarios"), "Nenhum usuário encontrado"
         )
     )
 
@@ -139,16 +194,12 @@ def test_filtro_por_numero_registro(
 ):
     _abrir_lista(driver, base_url)
 
-    preencher_campo(driver, By.NAME, "numero_registro", "7777")
+    preencher_campo(
+        driver, By.NAME, "numero_registro", str(usuarios_variados["numero_registro"])
+    )
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
-    WebDriverWait(driver, 5).until(
-        EC.text_to_be_present_in_element(
-            (By.CSS_SELECTOR, "table tbody"), "Selenium Dizimista Ativo"
-        )
-    )
-
-    nomes = _obter_texto_linhas(driver)
+    nomes = _obter_nomes_apos_carregamento(driver, "Selenium Dizimista Ativo")
     assert nomes == ["Selenium Dizimista Ativo"]
 
 
@@ -164,13 +215,7 @@ def test_filtro_por_perfil_dizimista(
     _selecionar_opcao(driver, "perfil", "dizimista")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
-    WebDriverWait(driver, 5).until(
-        EC.text_to_be_present_in_element(
-            (By.CSS_SELECTOR, "table tbody"), "Selenium Dizimista Ativo"
-        )
-    )
-
-    nomes = _obter_texto_linhas(driver)
+    nomes = _obter_nomes_apos_carregamento(driver, "Selenium Dizimista Ativo")
     assert "Selenium Admin" not in nomes
     assert "Selenium Dizimista Ativo" in nomes
 
@@ -184,13 +229,7 @@ def test_filtro_por_perfil_administrador(
     _selecionar_opcao(driver, "perfil", "administrador")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
-    WebDriverWait(driver, 5).until(
-        EC.text_to_be_present_in_element(
-            (By.CSS_SELECTOR, "table tbody"), "Selenium Admin"
-        )
-    )
-
-    nomes = _obter_texto_linhas(driver)
+    nomes = _obter_nomes_apos_carregamento(driver, "Selenium Admin")
     assert "Selenium Admin" in nomes
     assert "Selenium Dizimista Ativo" not in nomes
 
@@ -207,15 +246,10 @@ def test_filtro_por_situacao_ativo(
     _selecionar_opcao(driver, "ativo", "true")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
-    WebDriverWait(driver, 5).until(
-        EC.text_to_be_present_in_element(
-            (By.CSS_SELECTOR, "table tbody"), "Selenium Dizimista Ativo"
-        )
-    )
-
-    nomes = _obter_texto_linhas(driver)
-    assert len(nomes) == 2
-    assert all(n in nomes for n in ["Selenium Admin", "Selenium Dizimista Ativo"])
+    nomes = _obter_nomes_apos_carregamento(driver, "Selenium Dizimista Ativo")
+    assert "Selenium Admin" in nomes
+    assert "Selenium Dizimista Ativo" in nomes
+    assert "Admin Teste" in nomes  # o próprio admin logado também aparece
 
 
 # --------------------------------------------------------------------------- #
@@ -230,13 +264,7 @@ def test_filtro_por_status_cadastro_aprovado(
     _selecionar_opcao(driver, "status_cadastro", "aprovado")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
-    WebDriverWait(driver, 5).until(
-        EC.text_to_be_present_in_element(
-            (By.CSS_SELECTOR, "table tbody"), "Selenium Dizimista Ativo"
-        )
-    )
-
-    nomes = _obter_texto_linhas(driver)
+    nomes = _obter_nomes_apos_carregamento(driver, "Selenium Dizimista Ativo")
     assert nomes == ["Selenium Dizimista Ativo"]
 
 
@@ -254,7 +282,7 @@ def test_paginacao_preserva_filtro_de_nome(
 
     WebDriverWait(driver, 5).until(
         EC.text_to_be_present_in_element(
-            (By.CSS_SELECTOR, "table tbody"), "Selenium Admin"
+            (By.ID, "tabela-usuarios"), "Selenium Admin"
         )
     )
 
@@ -277,16 +305,12 @@ def test_botao_limpar_reseta_filtros(
     _selecionar_opcao(driver, "ativo", "true")
     driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
-    WebDriverWait(driver, 5).until(
-        EC.text_to_be_present_in_element(
-            (By.CSS_SELECTOR, "table tbody"), "Selenium Dizimista Ativo"
-        )
-    )
+    _obter_nomes_apos_carregamento(driver, "Selenium Dizimista Ativo")
 
+    # Clica em Limpar e aguarda o recarregamento completo da página.
     driver.find_element(By.LINK_TEXT, "Limpar").click()
-
     WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located((By.TAG_NAME, "table"))
+        EC.presence_of_element_located((By.ID, "tabela-usuarios"))
     )
 
     # Filtros devem estar reiniciados
