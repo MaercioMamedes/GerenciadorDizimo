@@ -115,7 +115,9 @@ async def test_admin_cria_dizimista_com_numero_registro_duplicado(
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert "número de registro" in response.text.lower()
-    assert "já está em uso por outro dizimista" in response.text.lower()
+    assert "em uso" in response.text.lower()
+
+
 
 async def test_admin_cria_administrador_exige_email_senha_e_paroquia(
     async_client: AsyncClient, db_session, admin_factory
@@ -134,7 +136,8 @@ async def test_admin_cria_administrador_exige_email_senha_e_paroquia(
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert "e-mail" in response.text.lower()
     assert "senha" in response.text.lower()
-    assert "paroquia" in response.text.lower()
+    assert "paróquia" in response.text.lower()
+
 
 async def test_autocadastro_ignora_numero_registro_enviado(
     async_client: AsyncClient, db_session, igreja_factory

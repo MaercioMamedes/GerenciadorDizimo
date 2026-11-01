@@ -29,9 +29,7 @@ class Usuario(Base, TimestampMixin):
 
     # E-mail é obrigatório apenas para administradores e para autocadastro.
     # Dizimistas cadastrados por um administrador podem não possuir e-mail.
-    email: Mapped[str | None] = mapped_column(
-        String(150), unique=True, nullable=True
-    )
+    email: Mapped[str | None] = mapped_column(String(150), unique=True, nullable=True)
     senha_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     telefone: Mapped[str | None] = mapped_column(String(20), nullable=True)

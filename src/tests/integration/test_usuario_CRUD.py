@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from tests.selenium.helpers import (
+from tests.integration.helpers import (
     APP_BASE_URL,
     _aguardar_alerta_erro,
     _aguardar_carregamento_pagina,
@@ -21,7 +21,6 @@ from tests.selenium.helpers import (
     _criar_admin_logado,
     _email_unico,
     _linha_usuario,
-    _login,
     _selecionar_igreja,
     _selecionar_paroquia,
     _selecionar_perfil,
@@ -31,9 +30,12 @@ from tests.selenium.helpers import (
 pytestmark = pytest.mark.selenium
 
 
-def _preencher_campos_comuns(driver, nome: str, email: str | None, senha: str | None) -> None:
+def _preencher_campos_comuns(
+    driver, nome: str, email: str | None, senha: str | None
+) -> None:
     """Forward para o helper do pacote, mantendo o arquivo autocontido."""
-    from tests.selenium.helpers import _preencher_campos_comuns as helper
+    from tests.integration.helpers import _preencher_campos_comuns as helper
+
     helper(driver, nome, email or "", senha or "")
 
 
@@ -119,7 +121,8 @@ class TestCadastroUsuario:
 
 class TestCadastroPorAdministrador:
     async def test_admin_cria_dizimista_sem_email_sem_senha(self, driver):
-        """CASO 1: admin cadastra dizimista sem e-mail, sem senha e sem número de registro."""
+        """CASO 1: admin cadastra dizimista sem e-mail,
+        sem senha e sem número de registro."""
         await _criar_admin_logado(driver)
 
         driver.get(f"{APP_BASE_URL}/usuarios/novo")
@@ -140,7 +143,6 @@ class TestCadastroPorAdministrador:
         assert "Dizimista Sem Email" in driver.page_source
         assert "Número de registro" in driver.page_source
         assert "—" in driver.page_source
-
 
     async def test_admin_cria_dizimista_com_numero_registro(self, driver):
         await _criar_admin_logado(driver)
@@ -309,7 +311,9 @@ class TestEdicaoUsuario:
         await _criar_admin_logado(driver)
 
         email_dizimista = _email_unico()
-        _cadastrar_dizimista(driver, "Nome Original", email_dizimista, "senha_valida123")
+        _cadastrar_dizimista(
+            driver, "Nome Original", email_dizimista, "senha_valida123"
+        )
 
         driver.get(f"{APP_BASE_URL}/usuarios?tamanho_pagina=100")
         linha = _linha_usuario(driver, email_dizimista)
@@ -394,14 +398,17 @@ class TestEdicaoUsuario:
 
         WebDriverWait(driver, 8).until(EC.url_contains("/usuarios/"))
         WebDriverWait(driver, 8).until(
-            EC.text_to_be_present_in_element((By.TAG_NAME, "body"), "Perfil de Dizimista")
+            EC.text_to_be_present_in_element(
+                (By.TAG_NAME, "body"), "Perfil de Dizimista"
+            )
         )
         assert "Igreja Matriz Selenium" in driver.page_source
 
 
 class TestTimestampsUsuario:
     async def test_timestamps_aparecem_apos_criacao(self, driver):
-        """Após criar um usuário, os metadados de tempo devem ser exibidos no template."""
+        """Após criar um usuário, os metadados de tempo devem ser exibidos
+        no template."""
         await _criar_admin_logado(driver)
 
         email = _email_unico()
@@ -422,7 +429,8 @@ class TestTimestampsUsuario:
         assert _formato_data_hora_valido(atualizado_em)
 
     async def test_atualizado_em_muda_apos_edicao(self, driver):
-        """Após editar um usuário, atualizado_em deve mudar no template; criado_em não."""
+        """Após editar um usuário, atualizado_em deve mudar no template;
+        criado_em não."""
         await _criar_admin_logado(driver)
 
         email = _email_unico()
@@ -471,7 +479,8 @@ class TestTimestampsUsuario:
         assert _formato_data_hora_valido(atualizado_em_depois)
 
     async def test_atualizado_em_muda_apos_edicao_apenas_perfil_dizimista(self, driver):
-        """Alterar apenas um campo do PerfilDizimista deve atualizar o timestamp de Usuário."""
+        """Alterar apenas um campo do PerfilDizimista deve atualizar o
+        timestamp de Usuário."""
         await _criar_admin_logado(driver)
 
         driver.get(f"{APP_BASE_URL}/usuarios/novo")

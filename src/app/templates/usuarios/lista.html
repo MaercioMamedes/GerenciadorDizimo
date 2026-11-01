@@ -9,22 +9,64 @@
 </div>
 
 <form method="get" action="{{ url_for('listar_usuarios_view') }}" class="row g-2 align-items-end mb-3">
-  <div class="col-auto">
+  <div class="col-md-3">
+    <label for="busca" class="form-label mb-1">Nome</label>
+    <input type="text" class="form-control" id="busca" name="busca"
+           placeholder="Buscar por nome" value="{{ busca_filtro }}">
+  </div>
+
+  <div class="col-md-2">
+    <label for="numero_registro" class="form-label mb-1">Nº Registro</label>
+    <input type="text" class="form-control" id="numero_registro" name="numero_registro"
+           placeholder="Ex: 123" value="{{ numero_registro_filtro }}">
+  </div>
+
+  <div class="col-md-2">
+    <label for="data_nascimento" class="form-label mb-1">Data de Nascimento</label>
+    <input type="date" class="form-control" id="data_nascimento" name="data_nascimento"
+           value="{{ data_nascimento_filtro }}">
+  </div>
+
+  <div class="col-md-2">
     <label for="perfil" class="form-label mb-1">Perfil</label>
-    <select class="form-select" id="perfil" name="perfil" onchange="this.form.submit()">
+    <select class="form-select" id="perfil" name="perfil">
       <option value="" {{ "selected" if not perfil_filtro else "" }}>Todos</option>
       <option value="administrador" {{ "selected" if perfil_filtro == "administrador" else "" }}>Administrador</option>
       <option value="dizimista" {{ "selected" if perfil_filtro == "dizimista" else "" }}>Dizimista</option>
     </select>
   </div>
 
-  <div class="col-auto">
+  <div class="col-md-2">
+    <label for="ativo" class="form-label mb-1">Situação</label>
+    <select class="form-select" id="ativo" name="ativo">
+      <option value="" {{ "selected" if ativo_filtro is none else "" }}>Todos</option>
+      <option value="true" {{ "selected" if ativo_filtro is true else "" }}>Ativo</option>
+      <option value="false" {{ "selected" if ativo_filtro is false else "" }}>Inativo</option>
+    </select>
+  </div>
+
+  <div class="col-md-2">
+    <label for="status_cadastro" class="form-label mb-1">Status Cadastro</label>
+    <select class="form-select" id="status_cadastro" name="status_cadastro">
+      <option value="" {{ "selected" if not status_cadastro_filtro else "" }}>Todos</option>
+      <option value="pendente" {{ "selected" if status_cadastro_filtro == "pendente" else "" }}>Pendente</option>
+      <option value="aprovado" {{ "selected" if status_cadastro_filtro == "aprovado" else "" }}>Aprovado</option>
+      <option value="rejeitado" {{ "selected" if status_cadastro_filtro == "rejeitado" else "" }}>Rejeitado</option>
+    </select>
+  </div>
+
+  <div class="col-md-2">
     <label for="tamanho_pagina" class="form-label mb-1">Itens por página</label>
-    <select class="form-select" id="tamanho_pagina" name="tamanho_pagina" onchange="this.form.submit()">
+    <select class="form-select" id="tamanho_pagina" name="tamanho_pagina">
       {% for opcao in [10, 20, 50, 100] %}
         <option value="{{ opcao }}" {{ "selected" if tamanho_pagina == opcao else "" }}>{{ opcao }}</option>
       {% endfor %}
     </select>
+  </div>
+
+  <div class="col-md-3 d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Filtrar</button>
+    <a href="{{ url_for('listar_usuarios_view') }}" class="btn btn-outline-primary">Limpar</a>
   </div>
 
   <input type="hidden" name="pagina" value="1">
@@ -37,6 +79,7 @@
         <tr>
           <th>Nome</th>
           <th>E-mail</th>
+          <th>Nº Registro</th>
           <th>Perfil</th>
           <th>Status</th>
           <th>Ações</th>
@@ -46,14 +89,19 @@
         {% for usuario in itens %}
         <tr>
           <td>{{ usuario.nome }}</td>
-          <td>{{ usuario.email }}</td>
+          <td>{{ usuario.email or "-" }}</td>
+          <td>
+            {% if usuario.perfil_dizimista %}
+              {{ usuario.perfil_dizimista.numero_registro or "-" }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
           <td>
             {% if usuario.perfil.value == "administrador" and usuario.perfil_dizimista != None %}
               <span class="badge bg-primary">Administrador</span>
-               <span class="badge bg-secondary">Dizimista</span>
-            
-            {% elif usuario.perfil.value == "administrador"  %}
-    
+              <span class="badge bg-secondary">Dizimista</span>
+            {% elif usuario.perfil.value == "administrador" %}
               <span class="badge bg-primary">Administrador</span>
             {% else %}
               <span class="badge bg-secondary">Dizimista</span>
@@ -73,7 +121,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="5" class="text-center text-muted py-4">Nenhum usuário encontrado.</td>
+          <td colspan="6" class="text-center text-muted py-4">Nenhum usuário encontrado.</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -84,10 +132,10 @@
 {% if total_paginas > 1 %}
 <nav class="mt-4" aria-label="Paginação de usuários">
   <ul class="pagination justify-content-center">
-
     <li class="page-item {{ 'disabled' if pagina <= 1 else '' }}">
       <a class="page-link"
-         href="/usuarios?pagina={{ pagina - 1 }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}">
+         href="{{ url_for('listar_usuarios_view') }}?pagina={{ pagina - 1 }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}&ativo={{ ativo_filtro|lower if ativo_filtro is not none else '' }}
+&status_cadastro={{ status_cadastro_filtro }}&busca={{ busca_filtro }}&numero_registro={{ numero_registro_filtro }}&data_nascimento={{ data_nascimento_filtro }}">
         Anterior
       </a>
     </li>
@@ -95,7 +143,8 @@
     {% for p in range(1, total_paginas + 1) %}
       <li class="page-item {{ 'active' if p == pagina else '' }}">
         <a class="page-link"
-           href="/usuarios?pagina={{ p }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}">
+           href="{{ url_for('listar_usuarios_view') }}?pagina={{ p }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}&ativo={{ ativo_filtro|lower if ativo_filtro is not none else '' }}
+&status_cadastro={{ status_cadastro_filtro }}&busca={{ busca_filtro }}&numero_registro={{ numero_registro_filtro }}&data_nascimento={{ data_nascimento_filtro }}">
           {{ p }}
         </a>
       </li>
@@ -103,11 +152,11 @@
 
     <li class="page-item {{ 'disabled' if pagina >= total_paginas else '' }}">
       <a class="page-link"
-         href="/usuarios?pagina={{ pagina + 1 }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}">
+         href="{{ url_for('listar_usuarios_view') }}?pagina={{ pagina + 1 }}&tamanho_pagina={{ tamanho_pagina }}&perfil={{ perfil_filtro }}&ativo={{ ativo_filtro|lower if ativo_filtro is not none else '' }}
+&status_cadastro={{ status_cadastro_filtro }}&busca={{ busca_filtro }}&numero_registro={{ numero_registro_filtro }}&data_nascimento={{ data_nascimento_filtro }}">
         Próxima
       </a>
     </li>
-
   </ul>
 </nav>
 {% endif %}

@@ -45,4 +45,3 @@ class UsuarioResponse(BaseModel):
     perfil: PerfilUsuario
     paroquia_id: uuid.UUID | None
     ativo: bool
-    

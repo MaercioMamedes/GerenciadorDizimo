@@ -1,8 +1,8 @@
 """Carregamento de dados auxiliares e renderização dos templates de usuários."""
 
 from fastapi import Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.templates import templates

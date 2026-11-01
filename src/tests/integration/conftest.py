@@ -1,6 +1,7 @@
 """Fixtures compartilhadas para os testes E2E com Selenium."""
 
 import asyncio
+import uuid
 
 import pytest
 import pytest_asyncio
@@ -9,16 +10,21 @@ from sqlalchemy import select, text
 
 from app.models.igreja import Igreja
 from app.models.paroquia import Paroquia
+from app.models.usuario import PerfilUsuario, Usuario
 from selenium import webdriver
-from tests.conftest import _ensure_test_database_exists, _run_alembic_upgrade
-from tests.selenium import helpers
+from tests.conftest import (
+    TEST_DATABASE_URL,
+    _ensure_test_database_exists,
+    _run_alembic_upgrade,
+)
+from tests.integration import helpers
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _garantir_banco_de_teste_migrado():
     await _ensure_test_database_exists()
 
-    sync_test_url = helpers.TEST_DATABASE_URL.replace("+asyncpg", "")
+    sync_test_url = TEST_DATABASE_URL.replace("+asyncpg", "")
     await asyncio.to_thread(_run_alembic_upgrade, sync_test_url)
 
     async with helpers._async_session_maker() as session:
@@ -70,8 +76,6 @@ async def _garantir_banco_de_teste_migrado():
     await helpers._engine_test.dispose()
 
 
-
-
 @pytest.fixture
 def driver():
     options = webdriver.ChromeOptions()
@@ -105,3 +109,66 @@ def driver():
     navegador.set_window_size(1920, 1080)
     yield navegador
     navegador.quit()
+
+
+@pytest.fixture
+def base_url():
+    return helpers.APP_BASE_URL
+
+
+@pytest.fixture
+def db(db_session):
+    return db_session
+
+
+@pytest_asyncio.fixture
+async def paroquia_criada(db):
+    paroquia = Paroquia(cnpj="12.345.678/0001-90")
+    db.add(paroquia)
+    await db.flush()
+    await db.refresh(paroquia)
+    return paroquia
+
+
+@pytest_asyncio.fixture
+async def igreja_criada(db, paroquia_criada):
+    igreja = Igreja(
+        nome="Igreja Matriz Teste",
+        endereco="Rua dos Testes, 1",
+        is_matriz=True,
+        paroquia_id=paroquia_criada.id,
+    )
+    db.add(igreja)
+    await db.flush()
+    await db.refresh(igreja)
+    return igreja
+
+
+@pytest_asyncio.fixture
+async def admin_criado(db, paroquia_criada):
+    from app.core.security import hash_senha
+
+    senha = "senha_valida123"
+    admin = Usuario(
+        nome="Admin Teste",
+        email=f"admin-{uuid.uuid4().hex[:8]}@teste.local",
+        senha_hash=hash_senha(senha),
+        perfil=PerfilUsuario.ADMINISTRADOR,
+        ativo=True,
+        paroquia_id=paroquia_criada.id,
+    )
+    db.add(admin)
+    await db.flush()
+    await db.refresh(admin)
+    return {"email": admin.email, "senha": senha, "obj": admin}
+
+
+@pytest.fixture
+def admin_autenticado(driver, base_url, admin_criado):
+    helpers.fazer_login(
+        driver,
+        base_url,
+        email=admin_criado["email"],
+        senha=admin_criado["senha"],
+    )
+    return admin_criado

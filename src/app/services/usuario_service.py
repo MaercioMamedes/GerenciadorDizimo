@@ -115,9 +115,7 @@ async def atualizar_usuario(
     usuario.paroquia_id = dados.paroquia_id
     usuario.ativo = dados.ativo
 
-    perfil_alterado = await _orquestrar_perfil_dizimista(
-        db, usuario, perfil_dizimista
-    )
+    perfil_alterado = await _orquestrar_perfil_dizimista(db, usuario, perfil_dizimista)
 
     if perfil_alterado:
         usuario.atualizado_em = datetime.now(timezone.utc)

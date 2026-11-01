@@ -17,3 +17,5 @@
             - ✅ ao realizar o autocadastro e o sistema redirecionar para tela de com mensagem de aguardando validação. A url nao deve aparecer pendente=true
             - refatorar arquivo usuario_views
 
+- refatorar arquivo testes/integration/helpers
+

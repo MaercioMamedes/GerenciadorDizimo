@@ -11,7 +11,6 @@ from sqlalchemy.orm import selectinload
 from app.controllers.deps import get_usuario_atual_opcional
 from app.controllers.usuarios.helpers import eh_administrador
 from app.db.session import get_db
-from app.models.perfil_dizimista import PerfilDizimista
 from app.models.usuario import Usuario
 from app.services.usuario_service import excluir_usuario
 

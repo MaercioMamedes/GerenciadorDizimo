@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.paroquia import Paroquia
-from app.models.perfil_dizimista import PerfilDizimista, StatusCadastro
+from app.models.perfil_dizimista import StatusCadastro
 from app.models.usuario import PerfilUsuario, Usuario
 from app.services.usuario_service import PerfilDizimistaPayload
 

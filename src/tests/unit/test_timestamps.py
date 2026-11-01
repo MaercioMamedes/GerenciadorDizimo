@@ -72,5 +72,3 @@ async def test_template_filter_retorna_traco_para_valor_nulo():
     from app.core.template_filters import format_dt
 
     assert format_dt(None) == "—"
-
-

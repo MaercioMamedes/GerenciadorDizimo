@@ -42,5 +42,6 @@ async def validar_numero_registro_unico(
     existente = (await db.execute(stmt)).scalar_one_or_none()
     if existente is not None:
         raise ValueError(
-            f"O número de registro {numero_registro} já está em uso por outro dizimista."
+            f"""O número de registro {numero_registro} já está em uso por
+              outro dizimista."""
         )

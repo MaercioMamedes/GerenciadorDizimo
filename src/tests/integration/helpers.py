@@ -154,7 +154,6 @@ def _selecionar_perfil(driver, perfil: str) -> None:
         )
 
 
-
 def _garantir_campos_dizimista_visiveis(driver) -> None:
     """
     Força a exibição dos campos de dizimista e remove o required do igreja_id
@@ -241,8 +240,9 @@ def _selecionar_paroquia(driver, paroquia_id: str | None = None) -> None:
 
     # Confirma que o valor realmente foi aplicado
     WebDriverWait(driver, 5).until(
-        lambda d: d.find_element(By.ID, "paroquia_id").get_attribute("value")
-        == paroquia_id
+        lambda d: (
+            d.find_element(By.ID, "paroquia_id").get_attribute("value") == paroquia_id
+        )
     )
 
 
@@ -310,9 +310,7 @@ def _aguardar_alerta_erro(driver, timeout: int = 10) -> None:
 
 
 def _aguardar_visivel(driver, by, value, timeout: int = 10) -> None:
-    WebDriverWait(driver, timeout).until(
-        EC.visibility_of_element_located((by, value))
-    )
+    WebDriverWait(driver, timeout).until(EC.visibility_of_element_located((by, value)))
 
 
 def _cadastrar_dizimista(
@@ -390,3 +388,14 @@ def _linha_usuario(driver, email: str):
     )
     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", linha)
     return linha
+
+def preencher_campo(driver, by, name, value):
+    """Preenche um campo genérico do formulário."""
+    campo = driver.find_element(by, name)
+    campo.clear()
+    campo.send_keys(value)
+
+
+def fazer_login(driver, base_url, email, senha):
+    """Wrapper compatível com a assinatura usada no teste de filtros."""
+    _login(driver, email, senha)

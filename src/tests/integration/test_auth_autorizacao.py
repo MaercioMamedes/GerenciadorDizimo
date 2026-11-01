@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from tests.selenium.helpers import (
+from tests.integration.helpers import (
     APP_BASE_URL,
     _aguardar_alerta_erro,
     _aguardar_carregamento_pagina,
@@ -108,4 +108,3 @@ class TestAcessoRestrito:
         WebDriverWait(driver, 8).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "table"))
         )
-
